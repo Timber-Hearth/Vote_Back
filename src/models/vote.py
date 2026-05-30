@@ -1,19 +1,18 @@
-﻿from uuid import UUID
+﻿from sqlalchemy import BigInteger, Column, ForeignKey, TIMESTAMP, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import UUID
 
-from sqlalchemy import Column, UUID, ForeignKey, Integer, TIMESTAMP
-from sqlalchemy import BigInteger
-from sqlalchemy import String
-from sqlalchemy import DateTime
-
-from api.v1 import polls
-from core.database import Base
-from models.polls import Polls
+from src.core.database import Base
 
 
 class Vote(Base):
     __tablename__ = "votes"
-    
-    id = Column(BigInteger, primary_key=True)
-    poll_id = Column(UUID, ForeignKey(Polls.id), primary_key=True)
-    anonymous_id = Column(UUID, nullable=True)
-    created_at = Column(TIMESTAMP)
+
+    __table_args__ = (
+        UniqueConstraint("poll_id", "anonymous_id", name="uq_votes_poll_anon"),
+    )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    poll_id = Column(UUID(as_uuid=True), ForeignKey("polls.id", ondelete="CASCADE"), nullable=False, index=True)
+    option_id = Column(BigInteger, ForeignKey("poll_options.id", ondelete="CASCADE"), nullable=False, index=True)
+    anonymous_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)

@@ -1,16 +1,18 @@
-﻿from psycopg.types import uuid
-from sqlalchemy import Column, UUID, ForeignKey, Integer
-from sqlalchemy import BigInteger
-from sqlalchemy import String
-from sqlalchemy import DateTime
+﻿from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String, TIMESTAMP, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import UUID
 
-from models.polls import Polls
 from src.core.database import Base
+
 
 class PollOption(Base):
     __tablename__ = "poll_options"
-    
-    id = Column(BigInteger, primary_key=True)
-    poll_id = Column(UUID, ForeignKey(Polls.id), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("poll_id", "display_order", name="uq_poll_options_poll_order"),
+    )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    poll_id = Column(UUID(as_uuid=True), ForeignKey("polls.id", ondelete="CASCADE"), nullable=False, index=True)
     option_text = Column(String(255), nullable=False)
     display_order = Column(Integer, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)

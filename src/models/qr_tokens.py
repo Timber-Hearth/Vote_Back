@@ -1,13 +1,13 @@
-﻿from sqlalchemy import BigInteger, Column, UUID, ForeignKey, String, TIMESTAMP
+﻿from sqlalchemy import Column, ForeignKey, String, TIMESTAMP, text
+from sqlalchemy.dialects.postgresql import UUID
 
-from core.database import Base
-from models.polls import Polls
+from src.core.database import Base
 
 
 class QrTokens(Base):
     __tablename__ = "qr_tokens"
-    
-    id = Column(UUID, primary_key=True)
-    poll_id = Column(UUID, ForeignKey(Polls.id))
-    tokens = Column(String)
-    created_at = Column(TIMESTAMP)
+
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    poll_id = Column(UUID(as_uuid=True), ForeignKey("polls.id", ondelete="CASCADE"), nullable=False, index=True)
+    tokens = Column(String(255), nullable=False, unique=True)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
