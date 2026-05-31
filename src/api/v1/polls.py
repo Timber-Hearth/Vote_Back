@@ -6,11 +6,18 @@ from core.database import get_db
 from core.security import GetCurrentUserFromToken
 from models import User
 from schemas.poll import CreatePollRequest
-from services.poll_service import ServiceCreatePoll
+from services.poll_service import ServiceCreatePoll, ServiceGetPoll
 
 poll_router = APIRouter()
 
 @poll_router.post("/create")
 def CreatePoll(request : CreatePollRequest, db : Session = Depends(get_db), current_user: User = Depends(GetCurrentUserFromToken)):
-    poll = ServiceCreatePoll(db = db, owner_id = current_user.id, request = request)
-    return {"message" : "success", "poll_id" : str(poll.id)}
+    result = ServiceCreatePoll(db = db, owner_id = current_user.id, request = request)
+    return {"message" : "success", "data": result}
+
+@poll_router.get("/{token}")
+def GetPoll(token : str, db : Session = Depends(get_db)):
+    poll_data = ServiceGetPoll(db, token)
+    if not poll_data:
+        return {"error": "Poll not found"}
+    return {"data": poll_data}

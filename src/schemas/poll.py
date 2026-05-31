@@ -24,3 +24,4 @@ class CreatePollRequest(BaseModel):
         if value <= 0:
             raise ValueError("delete_after_hours must be greater than 0")
         return value
+

@@ -1,8 +1,9 @@
-﻿from datetime import UTC, datetime, timedelta
+﻿import secrets
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from models import PollOption, Polls
+from models import PollOption, Polls, QrTokens
 from schemas.poll import CreatePollRequest
 
 
@@ -38,6 +39,23 @@ def ServiceCreatePoll(db : Session, owner_id : int, request : CreatePollRequest)
         )
         db.add(option)
 
+    qr_token_string = secrets.token_urlsafe(16)
+    qr_token = QrTokens(
+        poll_id = polls.id,
+        tokens = qr_token_string
+    )
+    db.add(qr_token)
     db.commit()
     db.refresh(polls)
-    return polls
+    
+    return {
+        "poll_id": str(polls.id),
+        "token": qr_token_string
+    }
+
+def ServiceGetPoll(db : Session, token : str):
+    qr_token = db.query(QrTokens).filter(QrTokens.tokens == token).first()
+    if not qr_token:
+        return None
+    poll = db.query(Polls).filter(Polls.id == qr_token.poll_id).first()
+    return poll
