@@ -20,4 +20,4 @@ def GetPoll(token : str, db : Session = Depends(get_db)):
     poll_data = ServiceGetPoll(db, token)
     if not poll_data:
         return {"error": "Poll not found"}
-    return {"data": poll_data}
+    return {"data": poll_data} # TODO : 옵션 데이터도 들고 올수 있게 해야 할까?
