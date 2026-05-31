@@ -1,10 +1,10 @@
 ﻿from sqlalchemy.orm import Session
 
-from core.security import GetPasswordHash
+from core.security import GetPasswordHash, VerifyPassword
 from models import User
 
 
-def SignUp(db: Session, login_id : str, password : str):
+def ServiceSignUp(db: Session, login_id : str, password : str):
     exist_user = (
         db.query(User)
         .filter(User.login_id == login_id)
@@ -19,3 +19,14 @@ def SignUp(db: Session, login_id : str, password : str):
         db.commit()
         db.refresh(user)
         return user
+
+def ServiceLogin(db: Session, login_id: str, password: str):
+    exist_user = (
+        db.query(User)
+        .filter(User.login_id == login_id)
+        .first()
+    )
+    if exist_user and VerifyPassword(password, exist_user.password_hash):
+        return exist_user
+    else:
+        return None
