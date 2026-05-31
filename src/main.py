@@ -3,7 +3,7 @@
 from api.v1.auth import auth_router
 
 app = FastAPI()
-app.include_router(router=auth_router)
+app.include_router(router=auth_router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/")

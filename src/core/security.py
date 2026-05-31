@@ -10,14 +10,27 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 SECRET_KEY = os.environ.get("SECRET_KEY")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+MAX_BCRYPT_PASSWORD_BYTES = 72
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+def _ValidateBcryptPasswordLength(password: str) -> None:
+    password_bytes = len(password.encode("utf-8"))
+    if password_bytes > MAX_BCRYPT_PASSWORD_BYTES:
+        raise ValueError(
+            f"password must be {MAX_BCRYPT_PASSWORD_BYTES} bytes or less in UTF-8"
+        )
+
 def GetPasswordHash(password: str) -> str:
+    _ValidateBcryptPasswordLength(password)
     return pwd_context.hash(password)
 
 def VerifyPassword(password: str, _hash: str) -> bool:
-    return pwd_context.verify(password, _hash)
+    try:
+        return pwd_context.verify(password, _hash)
+    except ValueError:
+        return False
 
 
 def CreateAccessToken(data: dict, expires_delta: timedelta | None = None) -> str:
