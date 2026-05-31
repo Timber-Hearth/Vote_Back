@@ -1,10 +1,17 @@
 ﻿import os
 from typing import Any
 
+from fastapi import HTTPException
+from fastapi.params import Depends
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone, UTC
 from jose import jwt, JWTError
+from sentry_sdk.envelope import PayloadRef
+from sqlalchemy.orm import Session
+
+from core.database import get_db
+from models import User
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -51,3 +58,12 @@ def VerifyAccessToken(token: str) -> dict[str, Any] | None:
         return payload
     except JWTError:
         return None
+
+def GetCurrentUserFromToken(token: str = Depends(oauth2_scheme), db : Session = Depends(get_db)):
+    payload = VerifyAccessToken(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="invalid token")
+    user = db.query(User).filter(User.id == payload["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="user not found")
+    return user
