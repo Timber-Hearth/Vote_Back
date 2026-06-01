@@ -62,5 +62,5 @@ def ServiceGetPoll(db : Session, token : str):
     return poll
 
 def ServiceGetOptionsFromPollID(db: Session, id : UUID):
-    options = db.query(PollOption).filter(PollOption.poll_id == id)
-    pass
+    options = db.query(PollOption).filter(PollOption.poll_id == id).all()
+    return options

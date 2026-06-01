@@ -21,4 +21,4 @@ def GetPoll(token : str, db : Session = Depends(get_db)):
     if not poll_data:
         return {"error": "Poll not found"}
     options = ServiceGetOptionsFromPollID(db, poll_data.id)
-    return {"data": poll_data} # TODO : 옵션 데이터도 들고 올수 있게 해야 할까?
+    return {"data" : poll_data, "options" : options}
