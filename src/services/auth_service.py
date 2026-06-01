@@ -1,32 +1,21 @@
 ﻿from sqlalchemy.orm import Session
 
+from src.exceptions.auth import InvalidCredentialsError, UserAlreadyExistsError
 from src.core.security import GetPasswordHash, VerifyPassword
-from src.models import User
+from src.repositories.user_repository import CreateUser, GetUserByLoginID
 
 
 def ServiceSignUp(db: Session, login_id : str, password : str):
-    exist_user = (
-        db.query(User)
-        .filter(User.login_id == login_id)
-        .first()
-    )
+    exist_user = GetUserByLoginID(db, login_id)
     if exist_user:
-        raise Exception("User already exists")
-    else:
-        hash_password = GetPasswordHash(password)
-        user = User(login_id=login_id, password_hash=hash_password)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return user
+        raise UserAlreadyExistsError()
+
+    hash_password = GetPasswordHash(password)
+    return CreateUser(db, login_id, hash_password)
 
 def ServiceLogin(db: Session, login_id: str, password: str):
-    exist_user = (
-        db.query(User)
-        .filter(User.login_id == login_id)
-        .first()
-    )
+    exist_user = GetUserByLoginID(db, login_id)
     if exist_user and VerifyPassword(password, exist_user.password_hash):
         return exist_user
-    else:
-        return None
+
+    raise InvalidCredentialsError()
