@@ -21,7 +21,7 @@ def test_poll_option_has_unique_order_per_poll_constraint():
 
 def test_vote_has_duplicate_vote_guard_constraint():
     constraint_names = {constraint.name for constraint in Vote.__table__.constraints}
-    assert "uq_votes_poll_anon" in constraint_names
+    assert "uq_votes_poll_anon_option" in constraint_names
 
 
 def test_user_has_login_and_password_hash_columns():

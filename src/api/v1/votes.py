@@ -1,46 +1,39 @@
-﻿import uuid
-from datetime import UTC, datetime
-from fastapi import APIRouter
-from fastapi.params import Depends
-from sqlalchemy.orm.session import Session
-from fastapi import Response
+﻿from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.orm import Session
 
-from services.poll_service import ServiceGetOptionsFromPollID
-from src.services.vote_service import IsSingleUserTryVoteMultipleTime, GetAnonymousId, IsThatOptionReallyExist, ServiceVoteProcess
-from src.services.poll_service import ServiceGetPoll
 from src.core.database import get_db
-from schemas.vote import VoteRequest
+from src.exceptions.vote import VoteError
+from src.schemas.vote import VoteRequest
+from src.services.poll_service import ServiceGetPoll
+from src.services.vote_service import GetAnonymousId, NormalizeAnonymousId, ServiceVoteProcess
 
 vote_router = APIRouter()
 
 @vote_router.post("/{token}")
-def Vote(token : str, request : VoteRequest, response : Response, anonymous_id = Depends(GetAnonymousId), db : Session = Depends(get_db)):
+def Vote(
+    token: str,
+    request: VoteRequest,
+    response: Response,
+    anonymous_id: str | None = Depends(GetAnonymousId),
+    db: Session = Depends(get_db),
+):
     poll_data = ServiceGetPoll(db, token)
     if not poll_data:
-        return {"error": "Poll not found"}
-    if anonymous_id is None:
-        anonymous_id = str(uuid.uuid4())
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
+
+    normalized_anonymous_id, is_new_cookie = NormalizeAnonymousId(anonymous_id)
+
+    try:
+        ServiceVoteProcess(db, poll_data, request.option_ids, normalized_anonymous_id)
+    except VoteError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    if is_new_cookie:
         response.set_cookie(
-            key = "anonymous_id",
-            value = anonymous_id,
-            httponly = True,
+            key="anonymous_id",
+            value=str(normalized_anonymous_id),
+            httponly=True,
             max_age=60 * 60 * 24 * 365,
         )
-    if poll_data.expire_at and poll_data.expire_at < datetime.now(UTC):
-        return {"error": "poll expired"}
-    if poll_data.is_closed:
-        return {"error" : "already closed poll"}
-    if poll_data.allow_multiple_choice == False and IsSingleUserTryVoteMultipleTime(anonymous_id, poll_data.id, db):
-        return {"error" : "you can vote only once"}
-    options = ServiceGetOptionsFromPollID(db, poll_data.id)
-    if not options:
-        return {"error" : "this poll has no option"}
-    user_selected_options = request.option_ids
-    if len(user_selected_options) > 1 and poll_data.allow_multiple_choice == False:
-        return {"error" : "this poll can't select multiple option"}
-    if not IsThatOptionReallyExist(user_selected_options, options):
-        return {"error" : "that option not exist in db"}
 
-    for select in user_selected_options:
-        ServiceVoteProcess(db, select, poll_data.id, anonymous_id)
-    return {"success" : "vote done"}
+    return {"success": "vote done"}
