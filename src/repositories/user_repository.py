@@ -9,8 +9,7 @@ def GetUserByLoginID(db: Session, login_id: str):
 
 
 def CreateUser(db: Session, login_id: str, password_hash: str):
-	current_max_user_id = db.query(func.coalesce(func.max(User.id), 0)).scalar() or 0
-	user = User(id=current_max_user_id + 1, login_id=login_id, password_hash=password_hash)
+	user = User(login_id=login_id, password_hash=password_hash)
 	db.add(user)
 	try:
 		db.commit()
