@@ -32,10 +32,8 @@ def CreatePollWithOptionsAndToken(
 	db.add(poll)
 	db.flush()
 
-	current_max_option_id = db.query(func.coalesce(func.max(PollOption.id), 0)).scalar() or 0
 	option_instances = [
 		PollOption(
-			id=current_max_option_id + index,
 			poll_id=poll.id,
 			option_text=option_text,
 			display_order=index,
