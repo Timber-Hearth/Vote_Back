@@ -9,13 +9,7 @@ from src.models import Vote
 
 
 def GetAnonymousId(request: Request):
-    anonymous_id = request.cookies.get("anonymous_id")
-
-    if anonymous_id:
-        return anonymous_id
-
-    return str(uuid.uuid4())
-
+    return request.cookies.get("anonymous_id")
 
 
 def IsSingleUserTryVoteMultipleTime(anonymous_id : str, poll_id, db : Session):
@@ -30,3 +24,15 @@ def IsThatOptionReallyExist(user_select : List[int], options : List):
         if select not in options_id:
             return False
     return True
+
+def ServiceVoteProcess(db : Session, selected_options_id : int, poll_id : str, anonymous_id : str):
+    vote_instance = Vote(
+        poll_id = poll_id,
+        option_id=selected_options_id,
+        anonymous_id = anonymous_id
+    )
+    db.add(vote_instance)
+    try:
+        db.commit()
+    except:
+        db.rollback()
