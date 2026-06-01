@@ -64,3 +64,4 @@ def ServiceGetPoll(db : Session, token : str):
 def ServiceGetOptionsFromPollID(db: Session, id : UUID):
     options = db.query(PollOption).filter(PollOption.poll_id == id).all()
     return options
+
