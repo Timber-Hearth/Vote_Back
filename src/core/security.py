@@ -10,8 +10,8 @@ from jose import jwt, JWTError
 from sentry_sdk.envelope import PayloadRef
 from sqlalchemy.orm import Session
 
-from core.database import get_db
-from models import User
+from src.core.database import get_db
+from src.models import User
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30

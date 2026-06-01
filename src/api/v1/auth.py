@@ -1,13 +1,11 @@
-﻿from fastapi import HTTPException
-
-from fastapi import APIRouter
+﻿from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 
-from core.database import get_db
-from core.security import CreateAccessToken
-from schemas.auth import LoginRequest, SignUpRequest
-from services.auth_service import ServiceLogin, ServiceSignUp
+from src.core.database import get_db
+from src.core.security import CreateAccessToken
+from src.schemas.auth import LoginRequest, SignUpRequest
+from src.services.auth_service import ServiceLogin, ServiceSignUp
 
 auth_router = APIRouter()
 

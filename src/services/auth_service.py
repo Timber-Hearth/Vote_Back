@@ -1,7 +1,7 @@
 ﻿from sqlalchemy.orm import Session
 
-from core.security import GetPasswordHash, VerifyPassword
-from models import User
+from src.core.security import GetPasswordHash, VerifyPassword
+from src.models import User
 
 
 def ServiceSignUp(db: Session, login_id : str, password : str):

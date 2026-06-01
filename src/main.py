@@ -1,7 +1,7 @@
 ﻿from fastapi import FastAPI
 
-from api.v1.auth import auth_router
-from api.v1.polls import poll_router
+from src.api.v1.auth import auth_router
+from src.api.v1.polls import poll_router
 
 app = FastAPI()
 app.include_router(router=auth_router, prefix="/auth", tags=["auth"])

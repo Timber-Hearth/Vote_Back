@@ -1,10 +1,11 @@
 ﻿import secrets
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import UUID
 from sqlalchemy.orm import Session
 
-from models import PollOption, Polls, QrTokens
-from schemas.poll import CreatePollRequest
+from src.models import PollOption, Polls, QrTokens
+from src.schemas.poll import CreatePollRequest
 
 
 def ServiceCreatePoll(db : Session, owner_id : int, request : CreatePollRequest):
@@ -59,3 +60,7 @@ def ServiceGetPoll(db : Session, token : str):
         return None
     poll = db.query(Polls).filter(Polls.id == qr_token.poll_id).first()
     return poll
+
+def ServiceGetOptionsFromPollID(db: Session, id : UUID):
+    options = db.query(PollOption).filter(PollOption.poll_id == id)
+    pass

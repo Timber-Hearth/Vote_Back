@@ -5,11 +5,12 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# 내가 추가
 from src.core.database import Base
-from src.models import *
-
-# 내가 추가
+from src.models.polls import Polls  # noqa: F401
+from src.models.poll_option import PollOption  # noqa: F401
+from src.models.qr_tokens import QrTokens  # noqa: F401
+from src.models.user import User  # noqa: F401
+from src.models.vote import Vote  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,7 +21,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
+# add your model's MetaData object here8
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata

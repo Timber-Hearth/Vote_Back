@@ -80,7 +80,7 @@ python -m pip install -r req.txt
 프로젝트 루트(`E:\SecretVote\backend`)에 `.env` 생성:
 
 ```dotenv
-DATABASE_URL=postgresql+psycopg://postgres:<DB_PASSWORD>@localhost:5432/vote_db
+DATABASE_URL=postgresql+psycopg://ggwp:<DB_PASSWORD>@localhost:5432/vote_db
 SECRET_KEY=<YOUR_SECRET_KEY>
 ```
 
@@ -95,7 +95,7 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 기본 접속 후 DB 생성:
 
 ```powershell
-psql -U postgres
+psql -U ggwp
 ```
 
 ```sql
@@ -203,7 +203,7 @@ python -m pip install -r req.txt
 프로젝트 루트(`~/SecretVote/backend`)에 `.env` 생성:
 
 ```dotenv
-DATABASE_URL=postgresql+psycopg://postgres:<DB_PASSWORD>@localhost:5432/vote_db
+DATABASE_URL=postgresql+psycopg://ggwp:<DB_PASSWORD>@localhost:5432/vote_db
 SECRET_KEY=<YOUR_SECRET_KEY>
 ```
 
@@ -229,7 +229,7 @@ CREATE DATABASE vote_db;
 만약 `postgres` 계정으로 접속해야 하는 환경이면 아래처럼 시도:
 
 ```bash
-psql -U postgres -d postgres
+psql -U ggwp -d postgres
 ```
 
 #### E) 마이그레이션 + PYTHONPATH + 실행
