@@ -59,7 +59,7 @@ def VerifyAccessToken(token: str) -> dict[str, Any] | None:
     except JWTError:
         return None
 
-def GetCurrentUserFromToken(token: str = Depends(oauth2_scheme), db : Session = Depends(get_db)):
+def GetCurrentUserFromJwt(token: str = Depends(oauth2_scheme), db : Session = Depends(get_db)):
     payload = VerifyAccessToken(token)
     if not payload:
         raise HTTPException(status_code=401, detail="invalid token")

@@ -3,11 +3,12 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from models import Polls
 from src.schemas.poll import CreatePollRequest
 from src.repositories.poll_repository import (
     CreatePollWithOptionsAndToken,
     GetOptionsByPollID,
-    GetPollByToken,
+    GetPollByToken, GetPollByID,
 )
 
 
@@ -44,4 +45,10 @@ def ServiceGetPoll(db : Session, token : str):
 
 def ServiceGetOptionsFromPollID(db: Session, id):
     return GetOptionsByPollID(db, id)
+
+def IsThisPollCanSeeAnyone(db: Session, poll_id):
+    poll_data = GetPollByID(db, poll_id)
+    if poll_data.is_public_result:
+        return True
+    return False
 

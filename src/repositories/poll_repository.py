@@ -60,6 +60,11 @@ def CreatePollWithOptionsAndToken(
     db.refresh(poll)
     return poll, token
 
+def GetPollListByUserId(db: Session, user_id):
+    return db.query(Polls).filter(Polls.owner_id == user_id).all()
+
+def GetPollByID(db: Session, poll_id):
+    return db.query(Polls).filter(Polls.id == poll_id).first()
 
 def GetPollByToken(db: Session, token: str):
     qr_token = db.query(QrTokens).filter(QrTokens.tokens == token).first()

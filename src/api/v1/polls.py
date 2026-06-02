@@ -4,15 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pygments.lexers import data
 from sqlalchemy.orm import Session
 
-from repositories.poll_repository import GetQRTokenByOwnerAndPoll
+from repositories.poll_repository import GetQRTokenByOwnerAndPoll, GetPollByID
 from repositories.user_repository import GetPollListByUserId
 from repositories.vote_repository import CalculateVoteCount
 from src.core.database import get_db
-from src.core.security import GetCurrentUserFromToken
+from src.core.security import GetCurrentUserFromJwt
 from src.exceptions.poll import PollError, PollNotFoundError
 from src.models import User
 from src.schemas.poll import CreatePollRequest
-from src.services.poll_service import ServiceCreatePoll, ServiceGetPoll, ServiceGetOptionsFromPollID
+from src.services.poll_service import ServiceCreatePoll, ServiceGetPoll, ServiceGetOptionsFromPollID, \
+    IsThisPollCanSeeAnyone
 
 poll_router = APIRouter()
 
@@ -20,7 +21,7 @@ poll_router = APIRouter()
 def CreatePoll(
     request: CreatePollRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(GetCurrentUserFromToken)],
+    current_user: Annotated[User, Depends(GetCurrentUserFromJwt)],
 ):
     try:
         result = ServiceCreatePoll(db = db, owner_id = current_user.id, request = request)
@@ -37,21 +38,31 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
     return {"data" : poll_data, "options" : options}
 
 @poll_router.get("/{token}/result/list") # TODO : 테스트 필요해
-def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromToken)], db: Annotated[Session, Depends(get_db)]):
+def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt)], db: Annotated[Session, Depends(get_db)]):
     return {"data" :GetPollListByUserId(db, current_user.id)}
 
 
 @poll_router.get("/{id}/result/detail") # polls 의 id 값이다
-def GetPollResultDetail(id: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User, Depends(GetCurrentUserFromToken)]):
-    # 누구나 결과 볼수 있는지, 아니라면 사용자 id 검증 필요해
-    data = CalculateVoteCount(db, id)
-    options = ServiceGetOptionsFromPollID(db, id)
-    result = [
-        {
+def GetPollResultDetail(id: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User | None, Depends(GetCurrentUserFromJwt)]):
+    poll = GetPollByID(db, id)
+    if not poll:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
+
+    if not poll.is_public_result:
+        if not current_user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required")
+        if poll.owner_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can't see this poll")
+
+    data = CalculateVoteCount(db, poll.id)
+    options = ServiceGetOptionsFromPollID(db, poll.id)
+    result = {
+        "poll_data" : poll,
+        "options" :[{
             "option_id": opt.id,
             "option_text": opt.option_text,
             "count": data.get(opt.id, 0),
         }
         for opt in options
-    ]
-    return {"data" : result}
+    ]}
+    return {"data": result}
