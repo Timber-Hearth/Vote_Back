@@ -88,21 +88,23 @@ def BuildFinalPollData(db: Session, poll: Polls) -> dict[str, object]:
     return result
 
 
-def SetPollClose(db: Session, poll: type[Polls]):
+def SetPollClose(db: Session, poll: Polls):
     try:
         poll.is_closed = True
         db.commit()
         db.refresh(poll)
         return True
     except Exception as e:
+        db.rollback()
         print(e)
         return False
 
-def RemoveSinglePoll(db: Session, poll: type[Polls]):
+def RemoveSinglePoll(db: Session, poll: Polls):
     try:
         db.delete(poll)
         db.commit()
         return True
     except Exception as e:
+        db.rollback()
         print(e)
         return False
