@@ -1,9 +1,5 @@
-﻿import dbm
-from collections.abc import Sequence
+﻿from collections.abc import Sequence
 
-from certifi import where
-from select import select
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.models import PollOption, Polls, QrTokens
@@ -43,7 +39,11 @@ def CreatePollWithOptionsAndToken(
         )
         for index, option_text in enumerate(options, start=1)
     ]
-    db.add_all(option_instances)
+    if hasattr(db, "add_all"):
+        db.add_all(option_instances)
+    else:
+        for option in option_instances:
+            db.add(option)
 
     qr_token = QrTokens(
         poll_id=poll.id,

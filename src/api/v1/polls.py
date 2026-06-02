@@ -1,18 +1,22 @@
 ﻿from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pygments.lexers import data
 from sqlalchemy.orm import Session
 
-from repositories.poll_repository import GetPollByToken
-from repositories.user_repository import GetPollListByUserId
-from repositories.vote_repository import CalculateVoteCount
+from src.repositories.poll_repository import GetPollByToken
+from src.repositories.user_repository import GetPollListByUserId
 from src.core.database import get_db
-from src.core.security import GetCurrentUserFromJwt
+from src.core.security import GetCurrentUserFromJwt, GetCurrentUserFromJwtOptional
 from src.exceptions.poll import PollError, PollNotFoundError
 from src.models import User
 from src.schemas.poll import CreatePollRequest
-from src.services.poll_service import ServiceCreatePoll, ServiceGetPoll, ServiceGetOptionsFromPollID
+from src.services.poll_service import (
+    BuildFinalPollData,
+    PollPublicChecker,
+    ServiceCreatePoll,
+    ServiceGetOptionsFromPollID,
+    ServiceGetPoll,
+)
 
 poll_router = APIRouter()
 
@@ -42,26 +46,16 @@ def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt
 
 
 @poll_router.get("/{token}/result/detail") # token은 qr토큰이다
-def GetPollResultDetail(token: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User | None, Depends(GetCurrentUserFromJwt)]):
+def GetPollResultDetail(
+    token: str,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User | None, Depends(GetCurrentUserFromJwtOptional)],
+):
     poll = GetPollByToken(db, token)
     if not poll:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
 
-    if not poll.is_public_result:
-        if not current_user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required")
-        if poll.owner_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can't see this poll")
-
-    data = CalculateVoteCount(db, poll.id)
-    options = ServiceGetOptionsFromPollID(db, poll.id)
-    result = {
-        "poll_data" : poll,
-        "options" :[{
-            "option_id": opt.id,
-            "option_text": opt.option_text,
-            "count": data.get(opt.id, 0),
-        }
-        for opt in options
-    ]}
+    if PollPublicChecker(poll, current_user) is False:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to view this poll")
+    result = BuildFinalPollData(db, poll)
     return {"data": result}

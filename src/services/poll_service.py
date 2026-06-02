@@ -1,18 +1,19 @@
 ﻿import secrets
 from datetime import UTC, datetime, timedelta
-
 from sqlalchemy.orm import Session
 
-from models import Polls
+from src.models import Polls
+from src.repositories.vote_repository import CalculateVoteCount
 from src.schemas.poll import CreatePollRequest
 from src.repositories.poll_repository import (
     CreatePollWithOptionsAndToken,
     GetOptionsByPollID,
-    GetPollByToken, GetPollByID,
+    GetPollByToken,
+    GetPollByID,
 )
 
 
-def ServiceCreatePoll(db : Session, owner_id : int, request : CreatePollRequest):
+def ServiceCreatePoll(db: Session, owner_id: int, request: CreatePollRequest):
     title = request.title
     description = request.description
     options = request.options
@@ -40,15 +41,48 @@ def ServiceCreatePoll(db : Session, owner_id : int, request : CreatePollRequest)
         "token": token,
     }
 
-def ServiceGetPoll(db : Session, token : str):
+def ServiceGetPoll(db: Session, token: str):
     return GetPollByToken(db, token)
 
-def ServiceGetOptionsFromPollID(db: Session, id):
-    return GetOptionsByPollID(db, id)
+def ServiceGetOptionsFromPollID(db: Session, poll_id):
+    return GetOptionsByPollID(db, poll_id)
 
 def IsThisPollCanSeeAnyone(db: Session, poll_id):
     poll_data = GetPollByID(db, poll_id)
+    if poll_data is None:
+        return False
     if poll_data.is_public_result:
         return True
     return False
 
+def PollPublicChecker(poll: Polls, current_user=None):
+    if not poll.is_public_result:
+        if not current_user:
+            return False
+        if poll.owner_id != current_user.id:
+            return False
+    return True
+
+def BuildFinalPollData(db: Session, poll: Polls) -> dict[str, object]:
+    data = CalculateVoteCount(db, poll.id)
+    options = ServiceGetOptionsFromPollID(db, poll.id)
+    result = {
+        "poll_data": {
+            "id": str(poll.id),
+            "owner_id": poll.owner_id,
+            "title": poll.title,
+            "description": poll.description,
+            "is_public_result": poll.is_public_result,
+            "is_closed": poll.is_closed,
+            "allow_multiple_choice": poll.allow_multiple_choice,
+            "expire_at": poll.expire_at,
+            "created_at": poll.created_at,
+        },
+        "options": [{
+            "option_id": opt.id,
+            "option_text": opt.option_text,
+            "count": data.get(opt.id, 0),
+        }
+            for opt in options
+        ]}
+    return result

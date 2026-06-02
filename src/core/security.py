@@ -1,5 +1,5 @@
 ﻿import os
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import HTTPException
 from fastapi.params import Depends
@@ -7,7 +7,6 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone, UTC
 from jose import jwt, JWTError
-from sentry_sdk.envelope import PayloadRef
 from sqlalchemy.orm import Session
 
 from src.core.database import get_db
@@ -16,7 +15,14 @@ from src.models import User
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    # Keep local/dev behavior stable even when .env is missing.
+    SECRET_KEY = "dev-only-secret-key-change-me"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login",
+    auto_error=False,
+)
 MAX_BCRYPT_PASSWORD_BYTES = 72
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -59,7 +65,10 @@ def VerifyAccessToken(token: str) -> dict[str, Any] | None:
     except JWTError:
         return None
 
-def GetCurrentUserFromJwt(token: str = Depends(oauth2_scheme), db : Session = Depends(get_db)):
+def GetCurrentUserFromJwt(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+):
     payload = VerifyAccessToken(token)
     if not payload:
         raise HTTPException(status_code=401, detail="invalid token")
@@ -67,3 +76,19 @@ def GetCurrentUserFromJwt(token: str = Depends(oauth2_scheme), db : Session = De
     if not user:
         raise HTTPException(status_code=401, detail="user not found")
     return user
+
+
+def GetCurrentUserFromJwtOptional(
+    token: Annotated[str | None, Depends(oauth2_scheme_optional)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    if not token:
+        return None
+
+    payload = VerifyAccessToken(token)
+    if not payload:
+        return None
+
+    user = db.query(User).filter(User.id == payload["user_id"]).first()
+    return user
+

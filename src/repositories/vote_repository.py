@@ -35,16 +35,22 @@ def CreateVotes(
 	anonymous_id,
 	option_ids: Sequence[int],
 ) -> None:
-	current_max_id = db.query(func.coalesce(func.max(Vote.id), 0)).scalar() or 0
-	vote_instances = [
-		Vote(
-			id=current_max_id + index,
-			poll_id=poll_id,
-			option_id=option_id,
-			anonymous_id=anonymous_id,
-		)
-		for index, option_id in enumerate(option_ids, start=1)
-	]
+	bind = db.get_bind()
+	is_sqlite = bind is not None and bind.dialect.name == "sqlite"
+	current_max_id = 0
+	if is_sqlite:
+		current_max_id = db.query(func.coalesce(func.max(Vote.id), 0)).scalar() or 0
+
+	vote_instances = []
+	for index, option_id in enumerate(option_ids, start=1):
+		vote_payload = {
+			"poll_id": poll_id,
+			"option_id": option_id,
+			"anonymous_id": anonymous_id,
+		}
+		if is_sqlite:
+			vote_payload["id"] = current_max_id + index
+		vote_instances.append(Vote(**vote_payload))
 
 	db.add_all(vote_instances)
 	try:
