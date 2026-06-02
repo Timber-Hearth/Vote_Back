@@ -61,10 +61,18 @@ def GetPollResultDetail(
     return {"data": result}
 
 @poll_router.post("/{token}/close")
-def ClosePoll(token: str, db: Annotated[Session, Depends(get_db)]):
+def ClosePoll(
+    token: str,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(GetCurrentUserFromJwt)],
+):
     poll = GetPollByToken(db, token)
     if not poll:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
+
+    if poll.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to close this poll")
+
     val = SetPollClose(db, poll)
     if val is False:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
