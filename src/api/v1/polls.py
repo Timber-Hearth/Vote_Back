@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pygments.lexers import data
 from sqlalchemy.orm import Session
 
-from repositories.poll_repository import GetQRTokenByOwnerAndPoll, GetPollByID
+from repositories.poll_repository import GetPollByToken
 from repositories.user_repository import GetPollListByUserId
 from repositories.vote_repository import CalculateVoteCount
 from src.core.database import get_db
@@ -12,8 +12,7 @@ from src.core.security import GetCurrentUserFromJwt
 from src.exceptions.poll import PollError, PollNotFoundError
 from src.models import User
 from src.schemas.poll import CreatePollRequest
-from src.services.poll_service import ServiceCreatePoll, ServiceGetPoll, ServiceGetOptionsFromPollID, \
-    IsThisPollCanSeeAnyone
+from src.services.poll_service import ServiceCreatePoll, ServiceGetPoll, ServiceGetOptionsFromPollID
 
 poll_router = APIRouter()
 
@@ -42,9 +41,9 @@ def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt
     return {"data" :GetPollListByUserId(db, current_user.id)}
 
 
-@poll_router.get("/{id}/result/detail") # polls 의 id 값이다
-def GetPollResultDetail(id: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User | None, Depends(GetCurrentUserFromJwt)]):
-    poll = GetPollByID(db, id)
+@poll_router.get("/{token}/result/detail") # token은 qr토큰이다
+def GetPollResultDetail(token: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User | None, Depends(GetCurrentUserFromJwt)]):
+    poll = GetPollByToken(db, token)
     if not poll:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
 
