@@ -86,3 +86,23 @@ def BuildFinalPollData(db: Session, poll: Polls) -> dict[str, object]:
             for opt in options
         ]}
     return result
+
+
+def SetPollClose(db: Session, poll: type[Polls]):
+    try:
+        poll.is_closed = True
+        db.commit()
+        db.refresh(poll)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def RemoveSinglePoll(db: Session, poll: type[Polls]):
+    try:
+        db.delete(poll)
+        db.commit()
+        return True
+    except Exception as e:
+        print(e)
+        return False

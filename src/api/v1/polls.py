@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from models import Polls
 from src.repositories.poll_repository import GetPollByToken
 from src.repositories.user_repository import GetPollListByUserId
 from src.core.database import get_db
@@ -15,7 +16,7 @@ from src.services.poll_service import (
     PollPublicChecker,
     ServiceCreatePoll,
     ServiceGetOptionsFromPollID,
-    ServiceGetPoll,
+    ServiceGetPoll, SetPollClose, RemoveSinglePoll,
 )
 
 poll_router = APIRouter()
@@ -59,3 +60,23 @@ def GetPollResultDetail(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to view this poll")
     result = BuildFinalPollData(db, poll)
     return {"data": result}
+
+@poll_router.post("/{token}/close")
+def ClosePoll(token: str, db: Annotated[Session, Depends(get_db)]):
+    poll = GetPollByToken(db, token)
+    if not poll:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
+    val = SetPollClose(db, poll)
+    if val is False:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+    return {"message" : "success"}
+
+@poll_router.get("/{token}/remove")
+def RemovePoll(token: str, db: Annotated[Session, Depends(get_db)]):
+    poll = GetPollByToken(db, token)
+    if not poll:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
+    val = RemoveSinglePoll(db, poll)
+    if val is False:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+    return {"message" : "success"}
