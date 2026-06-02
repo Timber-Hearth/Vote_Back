@@ -1,8 +1,12 @@
 ﻿from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pygments.lexers import data
 from sqlalchemy.orm import Session
 
+from repositories.poll_repository import GetQRTokenByOwnerAndPoll
+from repositories.user_repository import GetPollListByUserId
+from repositories.vote_repository import CalculateVoteCount
 from src.core.database import get_db
 from src.core.security import GetCurrentUserFromToken
 from src.exceptions.poll import PollError, PollNotFoundError
@@ -31,3 +35,23 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PollNotFoundError().detail)
     options = ServiceGetOptionsFromPollID(db, poll_data.id)
     return {"data" : poll_data, "options" : options}
+
+@poll_router.get("/{token}/result/list") # TODO : 테스트 필요해
+def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromToken)], db: Annotated[Session, Depends(get_db)]):
+    return {"data" :GetPollListByUserId(db, current_user.id)}
+
+
+@poll_router.get("/{id}/result/detail") # polls 의 id 값이다
+def GetPollResultDetail(id: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User, Depends(GetCurrentUserFromToken)]):
+    # 누구나 결과 볼수 있는지, 아니라면 사용자 id 검증 필요해
+    data = CalculateVoteCount(db, id)
+    options = ServiceGetOptionsFromPollID(db, id)
+    result = [
+        {
+            "option_id": opt.id,
+            "option_text": opt.option_text,
+            "count": data.get(opt.id, 0),
+        }
+        for opt in options
+    ]
+    return {"data" : result}

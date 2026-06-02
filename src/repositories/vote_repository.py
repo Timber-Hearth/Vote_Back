@@ -53,6 +53,14 @@ def CreateVotes(
 		db.rollback()
 		raise
 
+def CalculateVoteCount(db: Session, poll_id):
+	rows = (
+		db.query(Vote.option_id, func.count(Vote.id))
+		.filter(Vote.poll_id == poll_id)
+		.group_by(Vote.option_id)
+		.all()
+	)
+	return {option_id: count for option_id, count in rows}
 
 
 

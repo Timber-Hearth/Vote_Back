@@ -1,7 +1,7 @@
 ﻿from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.models import User
+from src.models import User, Polls
 
 
 def GetUserByLoginID(db: Session, login_id: str):
@@ -19,5 +19,6 @@ def CreateUser(db: Session, login_id: str, password_hash: str):
 	db.refresh(user)
 	return user
 
-
+def GetPollListByUserId(db: Session, user_id):
+	return db.query(Polls).filter(Polls.owner_id == user_id).all()
 
