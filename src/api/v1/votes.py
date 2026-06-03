@@ -1,14 +1,11 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from core.redis_client import get_redis
-from models import Polls
 from src.core.database import get_db
 from src.exceptions.vote import VoteError
 from src.schemas.vote import VoteRequest
 from src.services.poll_service import ServiceGetPoll, DeletePollResultFromRedis
 from src.services.vote_service import GetAnonymousId, NormalizeAnonymousId, ServiceVoteProcess
-import os
 
 vote_router = APIRouter()
 

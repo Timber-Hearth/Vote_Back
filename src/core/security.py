@@ -1,4 +1,5 @@
 ﻿import os
+from hashlib import sha256
 from typing import Annotated, Any
 
 from fastapi import HTTPException
@@ -9,11 +10,10 @@ from datetime import datetime, timedelta, timezone, UTC
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
-from core.redis_client import get_redis
-from core.util import IsDebugMode
+from src.core.redis_client import get_redis
+from src.core.util import IsDebugMode
 from src.core.database import get_db
 from src.models import User
-from hashlib import sha256
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -98,11 +98,12 @@ def GetCurrentUserFromJwtOptional(
     user = db.query(User).filter(User.id == payload["user_id"]).first()
     return user
 
-def _BlacklistKeyFromToken(token : str) -> str:
+def _BlacklistKeyFromToken(token: str) -> str:
     token_hash = sha256(token.encode("utf-8")).hexdigest()
-    return f"{os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST")}{token_hash}"
+    key_prefix = os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST", "token_blacklist:")
+    return f"{key_prefix}{token_hash}"
 
-def IsTokenBlacklisted(token : str) -> bool:
+def IsTokenBlacklisted(token: str) -> bool:
     redis = get_redis()
     key = _BlacklistKeyFromToken(token)
     try:

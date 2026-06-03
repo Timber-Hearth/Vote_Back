@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.models import PollOption, Vote
+from src.repositories.id_allocator import AllocateNextBigIntIds
 
 
 def GetOptionsByPollID(db: Session, poll_id):
@@ -35,21 +36,15 @@ def CreateVotes(
 	anonymous_id,
 	option_ids: Sequence[int],
 ) -> None:
-	bind = db.get_bind()
-	is_sqlite = bind is not None and bind.dialect.name == "sqlite"
-	current_max_id = 0
-	if is_sqlite:
-		current_max_id = db.query(func.coalesce(func.max(Vote.id), 0)).scalar() or 0
-
+	vote_ids = AllocateNextBigIntIds(db, Vote, count=len(option_ids))
 	vote_instances = []
-	for index, option_id in enumerate(option_ids, start=1):
+	for vote_id, option_id in zip(vote_ids, option_ids):
 		vote_payload = {
+			"id": vote_id,
 			"poll_id": poll_id,
 			"option_id": option_id,
 			"anonymous_id": anonymous_id,
 		}
-		if is_sqlite:
-			vote_payload["id"] = current_max_id + index
 		vote_instances.append(Vote(**vote_payload))
 
 	db.add_all(vote_instances)

@@ -3,6 +3,7 @@
 from sqlalchemy.orm import Session
 
 from src.models import PollOption, Polls, QrTokens
+from src.repositories.id_allocator import AllocateNextBigIntIds
 
 
 def CreatePollWithOptionsAndToken(
@@ -31,13 +32,15 @@ def CreatePollWithOptionsAndToken(
     db.add(poll)
     db.flush()
 
+    option_ids = AllocateNextBigIntIds(db, PollOption, count=len(options))
     option_instances = [
         PollOption(
+            id=option_id,
             poll_id=poll.id,
             option_text=option_text,
             display_order=index,
         )
-        for index, option_text in enumerate(options, start=1)
+        for option_id, (index, option_text) in zip(option_ids, enumerate(options, start=1))
     ]
     if hasattr(db, "add_all"):
         db.add_all(option_instances)

@@ -1,17 +1,16 @@
-﻿import datetime
-import os
+﻿import os
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
-from core.redis_client import get_redis
-from core.security import SECRET_KEY, ALGORITHM
-from core.util import StrConvertToHashForRedis
+from src.core.redis_client import get_redis
+from src.core.security import ALGORITHM, SECRET_KEY, CreateAccessToken, oauth2_scheme
+from src.core.util import StrConvertToHashForRedis
 from src.core.database import get_db
 from src.exceptions.auth import AuthError
-from src.core.security import CreateAccessToken, oauth2_scheme
 from src.schemas.auth import LoginRequest, SignUpRequest
 from src.services.auth_service import ServiceLogin, ServiceSignUp
 
@@ -47,12 +46,13 @@ def Logout(token: Annotated[str, Depends(oauth2_scheme)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         exp_ts = int(payload["exp"])
-        now_ts = int(datetime.now(datetime.UTC).timestamp())
+        now_ts = int(datetime.now(UTC).timestamp())
         ttl = exp_ts - now_ts
         if ttl <= 0:
             return {"message" : "success"}
         token_hash = StrConvertToHashForRedis(token)
-        key = f"{os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST")}{token_hash}"
+        key_prefix = os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST", "token_blacklist:")
+        key = f"{key_prefix}{token_hash}"
         redis.setex(key, ttl, "1")
         return {"message" : "success"}
     except JWTError as exc:

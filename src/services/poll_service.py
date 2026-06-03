@@ -3,7 +3,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from sqlalchemy.orm import Session
 
-from core.redis_client import get_redis
+from src.core.redis_client import get_redis
 from src.models import Polls
 from src.repositories.vote_repository import CalculateVoteCount
 from src.schemas.poll import CreatePollRequest
@@ -111,10 +111,11 @@ def RemoveSinglePoll(db: Session, poll: Polls):
         print(e)
         return False
 
-def DeletePollResultFromRedis(poll_data: type[Polls]):
+def DeletePollResultFromRedis(poll_data: Polls):
     try:
         redis = get_redis()
-        key = f"{os.environ.get('REDIS_KEY_POLL_RESULT')}{poll_data.id}"
+        key_prefix = os.environ.get("REDIS_KEY_POLL_RESULT", "poll_result:")
+        key = f"{key_prefix}{poll_data.id}"
         redis.delete(key)
     except Exception as exc:
         print(exc)

@@ -1,7 +1,7 @@
-﻿from sqlalchemy import func
-from sqlalchemy.orm import Session
+﻿from sqlalchemy.orm import Session
 
 from src.models import User, Polls
+from src.repositories.id_allocator import AllocateNextBigIntIds
 
 
 def GetUserByLoginID(db: Session, login_id: str):
@@ -9,7 +9,8 @@ def GetUserByLoginID(db: Session, login_id: str):
 
 
 def CreateUser(db: Session, login_id: str, password_hash: str):
-	user = User(login_id=login_id, password_hash=password_hash)
+	user_id = AllocateNextBigIntIds(db, User, count=1)[0]
+	user = User(id=user_id, login_id=login_id, password_hash=password_hash)
 	db.add(user)
 	try:
 		db.commit()
