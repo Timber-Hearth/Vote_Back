@@ -9,8 +9,10 @@ from datetime import datetime, timedelta, timezone, UTC
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
+from core.redis_client import get_redis
 from src.core.database import get_db
 from src.models import User
+from hashlib import sha256
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -58,6 +60,8 @@ def CreateAccessToken(data: dict, expires_delta: timedelta | None = None) -> str
 
 
 def VerifyAccessToken(token: str) -> dict[str, Any] | None:
+    if IsTokenBlacklisted(token):
+        return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         payload["exp"] = datetime.fromtimestamp(payload["exp"], timezone.utc)
@@ -92,3 +96,14 @@ def GetCurrentUserFromJwtOptional(
     user = db.query(User).filter(User.id == payload["user_id"]).first()
     return user
 
+def _BlacklistKeyFromToken(token : str) -> str:
+    token_hash = sha256(token.encode("utf-8")).hexdigest()
+    return f"sv:auth:blacklist:{token_hash}"
+
+def IsTokenBlacklisted(token : str) -> bool:
+    redis = get_redis()
+    key = _BlacklistKeyFromToken(token)
+    try:
+        return bool(redis.exists(key))
+    except Exception:
+        return True
