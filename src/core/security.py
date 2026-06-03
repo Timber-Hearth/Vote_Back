@@ -18,9 +18,9 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     # Keep local/dev behavior stable even when .env is missing.
     SECRET_KEY = "dev-only-secret-key-change-me"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(
-    tokenUrl="/api/v1/auth/login",
+    tokenUrl="/auth/login",
     auto_error=False,
 )
 MAX_BCRYPT_PASSWORD_BYTES = 72
