@@ -1,8 +1,12 @@
-﻿from typing import Annotated
+﻿import os
+from typing import Annotated
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from core.redis_client import get_redis
+from core.util import StrConvertToHashForRedis
 from src.repositories.poll_repository import GetPollByToken
 from src.repositories.user_repository import GetPollListByUserId
 from src.core.database import get_db
@@ -57,7 +61,22 @@ def GetPollResultDetail(
 
     if PollPublicChecker(poll, current_user) is False:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to view this poll")
+    
+    key = f"{os.environ.get("REDIS_KEY_POLL_RESULT")}{poll.id}"
+    redis = get_redis()
+    
+    cached_data = redis.get(key)
+    if cached_data is not None:
+        print("Redis - GetDataFromRedis")
+        return {"data": json.loads(cached_data)}
+    
     result = BuildFinalPollData(db, poll)
+    redis.set(
+        key,
+        json.dumps(result, default=str),
+        ex=60
+    )
+    
     return {"data": result}
 
 @poll_router.post("/{token}/close")

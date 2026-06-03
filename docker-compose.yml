@@ -16,6 +16,17 @@
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: secretvote-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   app:
     build:
       context: .
@@ -24,9 +35,12 @@
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ggwp}:${POSTGRES_PASSWORD:-qwerty614}@db:5432/${POSTGRES_DB:-vote_db}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "8000:8000"
     command: sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"

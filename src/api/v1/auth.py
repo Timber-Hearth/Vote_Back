@@ -1,15 +1,14 @@
 ﻿import datetime
+import os
 from typing import Annotated
-from hashlib import sha256
 
 from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt, JWTError
-from sentry_sdk.envelope import PayloadRef
-from sentry_sdk.integrations.redis import redis
 from sqlalchemy.orm import Session
 
 from core.redis_client import get_redis
 from core.security import SECRET_KEY, ALGORITHM
+from core.util import StrConvertToHashForRedis
 from src.core.database import get_db
 from src.exceptions.auth import AuthError
 from src.core.security import CreateAccessToken, oauth2_scheme
@@ -52,8 +51,8 @@ def Logout(token: Annotated[str, Depends(oauth2_scheme)]):
         ttl = exp_ts - now_ts
         if ttl <= 0:
             return {"message" : "success"}
-        token_hash = sha256(token.encode("utf-8")).hexdigest()
-        key = f"sv:auth:blacklist:{token_hash}"
+        token_hash = StrConvertToHashForRedis(token)
+        key = f"{os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST")}{token_hash}"
         redis.setex(key, ttl, "1")
         return {"message" : "success"}
     except JWTError as exc:

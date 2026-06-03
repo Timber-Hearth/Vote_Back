@@ -311,3 +311,58 @@ alembic upgrade head
 python -m pytest -q
 uvicorn src.main:app --reload
 ```
+
+## 5) Docker 실행
+
+`Dockerfile`은 FastAPI 앱(`src.main:app`)을 PostgreSQL 연결 전제로 실행합니다.
+
+### 5-1. 이미지 빌드
+
+```powershell
+docker build -t secretvote-backend:latest .
+```
+
+### 5-2. 컨테이너 실행
+
+로컬 PostgreSQL을 사용할 때는 `host.docker.internal`를 사용하면 됩니다.
+
+```powershell
+docker run --rm -p 8000:8000 `
+  -e DATABASE_URL="postgresql+psycopg://ggwp:<DB_PASSWORD>@host.docker.internal:5432/vote_db" `
+  -e SECRET_KEY="<YOUR_SECRET_KEY>" `
+  secretvote-backend:latest
+```
+
+확인:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
+
+### 5-3. Docker Compose로 한 번에 실행
+
+`docker compose up` 한 번으로 `app + postgres`를 같이 올릴 수 있습니다.
+
+처음 한 번(선택):
+
+```powershell
+Copy-Item .env.compose.example .env.compose
+```
+
+실행:
+
+```powershell
+docker compose --env-file .env.compose up --build
+```
+
+백그라운드 실행:
+
+```powershell
+docker compose --env-file .env.compose up -d --build
+```
+
+중지/정리:
+
+```powershell
+docker compose down
+docker compose down -v
+```
