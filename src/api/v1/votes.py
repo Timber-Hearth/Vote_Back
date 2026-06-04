@@ -1,16 +1,26 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from core.redis_client import get_redis
+from src.core.redis_client import get_redis
 from src.core.database import get_db
 from src.exceptions.vote import VoteError
 from src.schemas.vote import VoteRequest
 from src.services.poll_service import ServiceGetPoll, DeletePollResultFromRedis
 from src.services.vote_service import GetAnonymousId, NormalizeAnonymousId, ServiceVoteProcess
 
-vote_router = APIRouter()
+vote_router = APIRouter(tags=["votes"])
 
-@vote_router.post("/{token}")
+@vote_router.post(
+    "/{token}",
+    summary="투표하기",
+    description="QR 토큰에 해당하는 투표에 옵션을 제출합니다.",
+    response_description="투표 처리 결과",
+    responses={
+        404: {"description": "투표를 찾을 수 없습니다."},
+        409: {"description": "이미 투표했거나 유효하지 않은 투표 요청입니다."},
+        429: {"description": "중복 제출이 감지되어 잠시 차단되었습니다."},
+    },
+)
 def Vote(
     token: str,
     request: VoteRequest,
@@ -18,6 +28,7 @@ def Vote(
     anonymous_id: str | None = Depends(GetAnonymousId),
     db: Session = Depends(get_db),
 ):
+    """익명 식별자 기준으로 투표를 처리하고 결과 캐시를 무효화합니다."""
     poll_data = ServiceGetPoll(db, token)
     if not poll_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")

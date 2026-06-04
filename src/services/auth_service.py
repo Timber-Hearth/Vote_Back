@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from core.redis_client import get_redis
+from src.core.redis_client import get_redis
 from src.exceptions.auth import InvalidCredentialsError, UserAlreadyExistsError, LoginAttemptLimitExceededError
 from src.core.security import GetPasswordHash, VerifyPassword
 from src.repositories.user_repository import CreateUser, GetUserByLoginID
