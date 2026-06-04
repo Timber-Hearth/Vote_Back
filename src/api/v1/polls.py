@@ -37,10 +37,29 @@ def CreatePoll(
 
 @poll_router.get("/{token}")
 def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
+    redis = get_redis()
+    key_prefix = os.environ.get("REDIS_KEY_POLL", "poll:")
+    try:
+        cached_data = redis.get(f"{key_prefix}{token}")
+    except Exception as exc:
+        print(exc)
+        cached_data = None
+    if cached_data is not None:
+        parsed = json.loads(cached_data)
+        print("Redis - GetPollAndOptionsFromRedis")
+        return {"data": parsed["poll"], "options": parsed["options"]}
+
     poll_data = ServiceGetPoll(db, token)
     if not poll_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PollNotFoundError().detail)
     options = ServiceGetOptionsFromPollID(db, poll_data.id)
+
+    redis.set(
+        f"{key_prefix}{token}",
+        json.dumps({"data" : poll_data, "options" : options}, default=str),
+        ex=60
+    )
+    
     return {"data" : poll_data, "options" : options}
 
 @poll_router.get("/{token}/result/list") # TODO : 테스트 필요해
@@ -71,11 +90,15 @@ def GetPollResultDetail(
         return {"data": json.loads(cached_data)}
     
     result = BuildFinalPollData(db, poll)
-    redis.set(
-        key,
-        json.dumps(result, default=str),
-        ex=60
-    )
+    
+    try:
+        redis.set(
+            key,
+            json.dumps(result, default=str),
+            ex=60
+        )
+    except Exception as exc:
+        print(exc)
     
     return {"data": result}
 
@@ -95,6 +118,14 @@ def ClosePoll(
     val = SetPollClose(db, poll)
     if val is False:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+    
+    try:
+        redis = get_redis()
+        key = f"{os.environ.get('REDIS_KEY_POLL', 'poll:')}{token}"
+        redis.delete(key)
+    except Exception as exc:
+        print(exc)
+    
     return {"message" : "success"}
 
 @poll_router.delete("/{token}/remove")
@@ -113,4 +144,12 @@ def RemovePoll(
     val = RemoveSinglePoll(db, poll)
     if val is False:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+    try:
+        redis = get_redis()
+        key = f"{os.environ.get('REDIS_KEY_POLL', 'poll:')}{token}"
+        redis.delete(key)
+    except Exception as exc:
+        print(exc)
+    
     return {"message" : "success"}

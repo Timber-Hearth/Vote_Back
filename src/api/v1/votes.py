@@ -1,6 +1,7 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from core.redis_client import get_redis
 from src.core.database import get_db
 from src.exceptions.vote import VoteError
 from src.schemas.vote import VoteRequest
@@ -20,9 +21,19 @@ def Vote(
     poll_data = ServiceGetPoll(db, token)
     if not poll_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
-
     normalized_anonymous_id, is_new_cookie = NormalizeAnonymousId(anonymous_id)
 
+    redis = get_redis()
+    lock_key = f"vote:lock:{poll_data.id}:{normalized_anonymous_id}"
+
+    try:
+        acquired = redis.set(lock_key, "1", nx=True, ex=3)
+        if not acquired:
+            raise HTTPException(status_code=429, detail="Too many requests. Please try again.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     try:
         ServiceVoteProcess(db, poll_data, request.option_ids, normalized_anonymous_id)
     except VoteError as exc:
