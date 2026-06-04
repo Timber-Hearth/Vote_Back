@@ -21,3 +21,7 @@ class InvalidCredentialsError(AuthError):
 	detail = "invalid"
 
 
+class LoginAttemptLimitExceededError(Exception):
+	def __init__(self):
+		self.status_code = 429
+		self.detail = "Too many login attempts. Please try again later."

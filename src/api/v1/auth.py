@@ -10,7 +10,7 @@ from src.core.redis_client import get_redis
 from src.core.security import ALGORITHM, SECRET_KEY, CreateAccessToken, oauth2_scheme
 from src.core.util import StrConvertToHashForRedis
 from src.core.database import get_db
-from src.exceptions.auth import AuthError
+from src.exceptions.auth import AuthError, LoginAttemptLimitExceededError
 from src.schemas.auth import LoginRequest, SignUpRequest
 from src.services.auth_service import ServiceLogin, ServiceSignUp
 
@@ -22,6 +22,8 @@ def Login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
         user = ServiceLogin(db, request.login_id, request.password)
     except AuthError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    except LoginAttemptLimitExceededError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail)
 
     token = CreateAccessToken(
         {
@@ -29,6 +31,7 @@ def Login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
             "user_id" : user.id
         }
     )
+    
     return {"access_token" : token, "token_type" : "bearer"}
 
 @auth_router.post("/signup")
