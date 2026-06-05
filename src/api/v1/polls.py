@@ -89,7 +89,7 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
     responses={
         401: {"description": "인증이 필요합니다."},
     },
-) # TODO : 테스트 필요해
+)
 def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt)], db: Annotated[Session, Depends(get_db)]):
     """현재 사용자 기준으로 투표 목록을 반환합니다."""
     return {"data" :GetPollListByUserId(db, current_user.id)}
@@ -110,7 +110,6 @@ def GetPollResultDetail(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User | None, Depends(GetCurrentUserFromJwtOptional)],
 ):
-    """공개 범위 검증 후 투표 결과 상세를 반환합니다."""
     poll = GetPollByToken(db, token)
     if not poll:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
