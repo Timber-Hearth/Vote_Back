@@ -68,6 +68,7 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
         print("Redis - GetPollAndOptionsFromRedis")
         return parsed
 
+
     poll_data = ServiceGetPoll(db, token)
     if not poll_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PollNotFoundError().detail)
