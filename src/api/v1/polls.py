@@ -3,6 +3,7 @@ import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from src.core.redis_client import get_redis
@@ -22,6 +23,34 @@ from src.services.poll_service import (
 
 poll_router = APIRouter(tags=["polls"])
 
+
+def _ToPublicPollData(poll_obj: object, qr_token: str) -> dict:
+    data = jsonable_encoder(poll_obj)
+    if isinstance(data, dict):
+        data.pop("id", None)
+        data["qr_token"] = qr_token
+    return data
+
+
+def _NormalizeCreatePollResponse(payload: dict) -> dict:
+    result = dict(payload)
+    result.pop("poll_id", None)
+    token = result.get("token")
+    if token is not None:
+        result["qr_token"] = token
+    return result
+
+
+def _NormalizePollResultDetail(payload: dict, qr_token: str) -> dict:
+    result = dict(payload)
+    poll_data = result.get("poll_data")
+    if isinstance(poll_data, dict):
+        poll_data = dict(poll_data)
+        poll_data.pop("id", None)
+        poll_data["qr_token"] = qr_token
+        result["poll_data"] = poll_data
+    return result
+
 @poll_router.post(
     "/create",
     summary="투표 생성",
@@ -37,12 +66,11 @@ def CreatePoll(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(GetCurrentUserFromJwt)],
 ):
-    """새 투표를 생성합니다."""
     try:
         result = ServiceCreatePoll(db = db, owner_id = current_user.id, request = request)
     except PollError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
-    return {"message" : "success", "data": result}
+    return {"message" : "success", "data": _NormalizeCreatePollResponse(result)}
 
 @poll_router.get(
     "/{token}",
@@ -54,7 +82,6 @@ def CreatePoll(
     },
 )
 def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
-    """투표 기본 정보와 옵션을 조회하며, 가능하면 Redis 캐시를 사용합니다."""
     redis = get_redis()
     key_prefix = os.environ.get("REDIS_KEY_POLL", "poll:")
     try:
@@ -64,6 +91,8 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
         cached_data = None
     if cached_data is not None:
         parsed = json.loads(cached_data)
+        if isinstance(parsed, dict) and isinstance(parsed.get("data"), dict):
+            parsed["data"] = _ToPublicPollData(parsed["data"], token)
         print("Redis - GetPollAndOptionsFromRedis")
         return parsed
 
@@ -71,14 +100,15 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
     if not poll_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PollNotFoundError().detail)
     options = ServiceGetOptionsFromPollID(db, poll_data.id)
+    response_payload = {"data": _ToPublicPollData(poll_data, token), "options": options}
 
     redis.set(
         f"{key_prefix}{token}",
-        json.dumps({"data" : poll_data, "options" : options}, default=str),
+        json.dumps(response_payload, default=str),
         ex=60
     )
     
-    return {"data" : poll_data, "options" : options}
+    return response_payload
 
 @poll_router.get(
     "/result/list",
@@ -99,7 +129,6 @@ def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt
         print("Redis - GetDataFromRedis")
         return {"data": json.loads(cached_data)}
     
-    data = GetPollListByUserId(db, current_user.id)
     data = GetPollListByUserId(db, current_user.id)
     try:
         redis.set(key, json.dumps(data, default=str), ex=60)
@@ -137,9 +166,13 @@ def GetPollResultDetail(
     cached_data = redis.get(key)
     if cached_data is not None:
         print("Redis - GetDataFromRedis")
-        return {"data": json.loads(cached_data)}
+        cached_result = json.loads(cached_data)
+        if isinstance(cached_result, dict):
+            cached_result = _NormalizePollResultDetail(cached_result, token)
+        return {"data": cached_result}
     
     result = BuildFinalPollData(db, poll)
+    result = _NormalizePollResultDetail(result, token)
     
     try:
         redis.set(
