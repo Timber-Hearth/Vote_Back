@@ -337,7 +337,7 @@ gcloud auth application-default login
 
 예시:
 ```powershell
-./cloud-sql-proxy --port=5433 secret-vote-back:asia-northeast3:secretvote-db-dev
+./cloud-sql-proxy --port=5433 secret-vote-back:us-central1:secretvote-db
 ```
 
 프록시가 실행되면 `localhost:5433`으로 Cloud SQL에 접속 가능해집니다.
@@ -345,7 +345,7 @@ gcloud auth application-default login
 ### 5-3. .env 설정 (Cloud SQL 연결용)
 
 ```dotenv
-DATABASE_URL=postgresql+psycopg://ggwp:<PASSWORD>@127.0.0.1:5433/vote_db
+DATABASE_URL=postgresql+psycopg://ggwp:!Qogusdn90@127.0.0.1:5433/vote_db
 SECRET_KEY=<YOUR_SECRET_KEY>
 REDIS_URL=redis://<REDIS_HOST>:6379/0
 ```
@@ -356,6 +356,7 @@ REDIS_URL=redis://<REDIS_HOST>:6379/0
 
 ```powershell
 psql -h 127.0.0.1 -p 5433 -U postgres -d postgres
+psql -h 127.0.0.1 -p 5433 -U ggwp -d vote_db
 ```
 
 ```sql
@@ -403,7 +404,7 @@ GRANT TEMP ON DATABASE vote_db TO ggwp;
 - `GRANT CREATE ON SCHEMA public`: 스키마 내에서 테이블 생성 권한
 - `ALTER DEFAULT PRIVILEGES`: 앞으로 생성될 네 객체에 대한 자동 권한 부여
 
-이 설정 후에는 Alembic 마이��레이션이 정상 작동합니다.
+이 설정 후에는 Alembic 마이  레이션이 정상 작동합니다.
 
 ### 5-5. Alembic 마이그레이션 적용
 
@@ -461,7 +462,7 @@ INFO:     Uvicorn running on http://127.0.0.1:8000
 1. **회원가입**
    - `POST /api/v1/auth/register`
    - Body: `{"login_id": "testuser", "password": "testpass123"}`
-   - 응���: 사용자 생성 성공
+   - 응   : 사용자 생성 성공
 
 2. **로그인**
    - `POST /api/v1/auth/login`
