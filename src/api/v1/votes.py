@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from src.core.redis_client import get_redis
 from src.core.database import get_db
 from src.exceptions.vote import VoteError
-from src.schemas.vote import VoteRequest
+from src.schemas.requests.vote import VoteRequest
+from src.schemas.responses.vote import VoteResponse
 from src.services.poll_service import ServiceGetPoll, DeletePollResultFromRedis
 from src.services.vote_service import GetAnonymousId, NormalizeAnonymousId, ServiceVoteProcess
 
@@ -12,6 +13,7 @@ vote_router = APIRouter(tags=["votes"])
 
 @vote_router.post(
     "/{token}",
+    response_model=VoteResponse,
     summary="투표하기",
     description="QR 토큰에 해당하는 투표에 옵션을 제출합니다.",
     response_description="투표 처리 결과",
@@ -36,11 +38,13 @@ def Vote(
 
     redis = get_redis()
     lock_key = f"vote:lock:{poll_data.id}:{normalized_anonymous_id}"
+    lock_acquired = False
 
     try:
         acquired = redis.set(lock_key, "1", nx=True, ex=3)
         if not acquired:
             raise HTTPException(status_code=429, detail="Too many requests. Please try again.")
+        lock_acquired = True
     except HTTPException:
         raise
     except Exception:
@@ -49,6 +53,12 @@ def Vote(
         ServiceVoteProcess(db, poll_data, request.option_ids, normalized_anonymous_id)
     except VoteError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    finally:
+        if lock_acquired:
+            try:
+                redis.delete(lock_key)
+            except Exception:
+                pass
 
     if is_new_cookie:
         response.set_cookie(

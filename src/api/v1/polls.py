@@ -12,7 +12,14 @@ from src.core.database import get_db
 from src.core.security import GetCurrentUserFromJwt, GetCurrentUserFromJwtOptional
 from src.exceptions.poll import PollError, PollNotFoundError
 from src.models import User
-from src.schemas.poll import CreatePollRequest
+from src.schemas.requests.poll import CreatePollRequest
+from src.schemas.responses.poll import (
+    CreatePollResponse,
+    PollDetailResponse,
+    PollListResponse,
+    PollMessageResponse,
+    PollResultDetailResponse,
+)
 from src.services.poll_service import (
     BuildFinalPollData,
     PollPublicChecker,
@@ -53,6 +60,7 @@ def _NormalizePollResultDetail(payload: dict, qr_token: str) -> dict:
 
 @poll_router.post(
     "/create",
+    response_model=CreatePollResponse,
     summary="투표 생성",
     description="로그인한 사용자가 새로운 투표를 생성합니다.",
     response_description="생성된 투표 정보",
@@ -74,6 +82,7 @@ def CreatePoll(
 
 @poll_router.get(
     "/{token}",
+    response_model=PollDetailResponse,
     summary="투표 조회",
     description="토큰으로 투표 기본 정보와 옵션 목록을 조회합니다.",
     response_description="투표 정보 및 옵션 목록",
@@ -112,6 +121,7 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
 
 @poll_router.get(
     "/result/list",
+    response_model=PollListResponse,
     summary="내 투표 목록 조회",
     description="현재 로그인한 사용자가 생성한 투표 목록을 조회합니다.",
     response_description="사용자 투표 목록",
@@ -139,6 +149,7 @@ def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt
 
 @poll_router.get(
     "/{token}/result/detail",
+    response_model=PollResultDetailResponse,
     summary="투표 결과 상세 조회",
     description="QR 토큰으로 투표 결과 상세 데이터를 조회합니다.",
     response_description="투표 결과 상세",
@@ -187,6 +198,7 @@ def GetPollResultDetail(
 
 @poll_router.post(
     "/{token}/close",
+    response_model=PollMessageResponse,
     summary="투표 종료",
     description="투표 소유자가 투표를 종료 상태로 변경합니다.",
     response_description="투표 종료 결과",
@@ -223,6 +235,7 @@ def ClosePoll(
 
 @poll_router.delete(
     "/{token}/remove",
+    response_model=PollMessageResponse,
     summary="투표 삭제",
     description="투표 소유자가 투표를 삭제합니다.",
     response_description="투표 삭제 결과",

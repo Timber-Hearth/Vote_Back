@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from src.core.redis_client import get_redis
 from src.models import Polls
 from src.repositories.vote_repository import CalculateVoteCount
-from src.schemas.poll import CreatePollRequest
+from src.schemas.requests.poll import CreatePollRequest
 from src.repositories.poll_repository import (
     CreatePollWithOptionsAndToken,
     GetOptionsByPollID,

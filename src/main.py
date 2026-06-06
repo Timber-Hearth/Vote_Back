@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.v1.votes import vote_router
 from src.api.v1.auth import auth_router
 from src.api.v1.polls import poll_router
+from src.schemas.responses.common import RootResponse
 
 app = FastAPI()
 app.include_router(router=auth_router, prefix="/auth", tags=["auth"])
@@ -18,6 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.get("/", response_model=RootResponse)
 def read_root():
     return {"Hello": "World"}

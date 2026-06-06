@@ -11,13 +11,15 @@ from src.core.security import ALGORITHM, SECRET_KEY, CreateAccessToken, oauth2_s
 from src.core.util import StrConvertToHashForRedis
 from src.core.database import get_db
 from src.exceptions.auth import AuthError, LoginAttemptLimitExceededError
-from src.schemas.auth import LoginRequest, SignUpRequest
+from src.schemas.requests.auth import LoginRequest, SignUpRequest
+from src.schemas.responses.auth import AuthMessageResponse, LoginResponse
 from src.services.auth_service import ServiceLogin, ServiceSignUp
 
 auth_router = APIRouter(tags=["auth"])
 
 @auth_router.post(
     "/login",
+    response_model=LoginResponse,
     summary="로그인",
     description="아이디/비밀번호로 로그인하고 액세스 토큰을 발급합니다.",
     response_description="액세스 토큰 정보",
@@ -46,6 +48,7 @@ def Login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
 
 @auth_router.post(
     "/signup",
+    response_model=AuthMessageResponse,
     summary="회원가입",
     description="새 사용자 계정을 생성합니다.",
     response_description="회원가입 결과",
@@ -64,6 +67,7 @@ def SignUp(request: SignUpRequest, db: Annotated[Session, Depends(get_db)]):
     
 @auth_router.post(
     "/logout",
+    response_model=AuthMessageResponse,
     summary="로그아웃",
     description="현재 Bearer 토큰을 블랙리스트에 등록해 즉시 무효화합니다.",
     response_description="로그아웃 결과",

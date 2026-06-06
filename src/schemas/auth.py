@@ -1,79 +1,10 @@
-﻿from pydantic import BaseModel, field_validator, model_validator
+﻿from pydantic import BaseModel
 
-MAX_BCRYPT_PASSWORD_BYTES = 72
+from src.schemas.requests.auth import LoginRequest, SignUpRequest
+from src.schemas.responses.auth import AuthMessageResponse, LoginResponse
 
-class SignUpRequest(BaseModel):
-    login_id: str
-    password: str
 
-    @model_validator(mode="before")
-    @classmethod
-    def NormalizeLoginIDAlias(cls, values):
-        if not isinstance(values, dict):
-            return values
-        if values.get("login_id"):
-            return values
-
-        for key in ("username", "email", "user_id"):
-            alias_value = values.get(key)
-            if alias_value:
-                values["login_id"] = alias_value
-                break
-        return values
-
-    @field_validator("login_id")
-    @classmethod
-    def NormalizeLoginID(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("login_id must not be empty")
-        return value
-
-    @field_validator("password")
-    @classmethod
-    def ValidatePasswordByteLength(cls, value: str) -> str:
-        if len(value.encode("utf-8")) > MAX_BCRYPT_PASSWORD_BYTES:
-            raise ValueError(
-                f"password must be {MAX_BCRYPT_PASSWORD_BYTES} bytes or less in UTF-8"
-            )
-        return value
-    
-class LoginRequest(BaseModel):
-    login_id: str
-    password: str
-
-    @model_validator(mode="before")
-    @classmethod
-    def NormalizeLoginIDAlias(cls, values):
-        if not isinstance(values, dict):
-            return values
-        if values.get("login_id"):
-            return values
-
-        for key in ("username", "email", "user_id"):
-            alias_value = values.get(key)
-            if alias_value:
-                values["login_id"] = alias_value
-                break
-        return values
-
-    @field_validator("login_id")
-    @classmethod
-    def NormalizeLoginID(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("login_id must not be empty")
-        return value
-
-    @field_validator("password")
-    @classmethod
-    def ValidatePasswordByteLength(cls, value: str) -> str:
-        if len(value.encode("utf-8")) > MAX_BCRYPT_PASSWORD_BYTES:
-            raise ValueError(
-                f"password must be {MAX_BCRYPT_PASSWORD_BYTES} bytes or less in UTF-8"
-            )
-        return value
-    
 class TokenRequest(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
