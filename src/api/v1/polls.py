@@ -6,8 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.core.redis_client import get_redis
-from src.repositories.poll_repository import GetPollByToken
-from src.repositories.user_repository import GetPollListByUserId
+from src.repositories.poll_repository import GetPollByToken, GetPollListByUserId
 from src.core.database import get_db
 from src.core.security import GetCurrentUserFromJwt, GetCurrentUserFromJwtOptional
 from src.exceptions.poll import PollError, PollNotFoundError
@@ -91,8 +90,22 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
     },
 )
 def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt)], db: Annotated[Session, Depends(get_db)]):
-    """현재 사용자 기준으로 투표 목록을 반환합니다."""
-    return {"data" :GetPollListByUserId(db, current_user.id)}
+    key_prefix = os.environ.get("REDIS_KEY_POLL_LIST")
+    key = f"{key_prefix}{current_user.id}"
+    redis = get_redis()
+
+    cached_data = redis.get(key)
+    if cached_data is not None:
+        print("Redis - GetDataFromRedis")
+        return {"data": json.loads(cached_data)}
+    
+    data = GetPollListByUserId(db, current_user.id)
+    data = GetPollListByUserId(db, current_user.id)
+    try:
+        redis.set(key, json.dumps(data, default=str), ex=60)
+    except Exception:
+        pass
+    return {"data": data}
 
 
 @poll_router.get(

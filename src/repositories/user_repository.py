@@ -19,7 +19,3 @@ def CreateUser(db: Session, login_id: str, password_hash: str):
 		raise
 	db.refresh(user)
 	return user
-
-def GetPollListByUserId(db: Session, user_id):
-	return db.query(Polls).filter(Polls.owner_id == user_id).all()
-
