@@ -54,7 +54,7 @@ def CreatePoll(
         404: {"description": "투표를 찾을 수 없습니다."},
     },
 )
-def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
+def GetPoll(token: str, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User, Depends(GetCurrentUserFromJwt)]):
     """투표 기본 정보와 옵션을 조회하며, 가능하면 Redis 캐시를 사용합니다."""
     redis = get_redis()
     key_prefix = os.environ.get("REDIS_KEY_POLL", "poll:")
@@ -70,13 +70,17 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
 
 
     poll_data = ServiceGetPoll(db, token)
+    poll_id = poll_data.owner_id
+    is_my_poll = False
+    if current_user is not None and poll_id == current_user.id:
+            is_my_poll = True
     if not poll_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PollNotFoundError().detail)
     options = ServiceGetOptionsFromPollID(db, poll_data.id)
 
     redis.set(
         f"{key_prefix}{token}",
-        json.dumps({"data" : poll_data, "options" : options}, default=str),
+        json.dumps({"data" : poll_data, "my_poll" : is_my_poll, "options" : options}, default=str),
         ex=60
     )
     
