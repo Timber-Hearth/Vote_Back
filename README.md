@@ -342,6 +342,9 @@ gcloud auth application-default login
 
 프록시가 실행되면 `localhost:5433`으로 Cloud SQL에 접속 가능해집니다.
 
+로컬로 db 세팅할때 레디스 켜야함 이 명령어를 써라
+docker run -d --name redis-local -p 6379:6379 redis:7-alpine
+
 ### 5-3. .env 설정 (Cloud SQL 연결용)
 
 ```dotenv

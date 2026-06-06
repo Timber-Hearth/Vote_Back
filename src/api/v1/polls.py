@@ -82,7 +82,7 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
     return {"data" : poll_data, "options" : options}
 
 @poll_router.get(
-    "/{token}/result/list",
+    "/result/list",
     summary="내 투표 목록 조회",
     description="현재 로그인한 사용자가 생성한 투표 목록을 조회합니다.",
     response_description="사용자 투표 목록",
