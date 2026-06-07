@@ -9,13 +9,13 @@ from src.core.security import GetPasswordHash, VerifyPassword
 from src.repositories.user_repository import CreateUser, GetUserByLoginID
 
 
-def ServiceSignUp(db: Session, login_id : str, password : str, expire_date: datetime):
+def ServiceSignUp(db: Session, login_id : str, password : str, expire_at: datetime):
     exist_user = GetUserByLoginID(db, login_id)
     if exist_user:
         raise UserAlreadyExistsError()
 
     hash_password = GetPasswordHash(password)
-    return CreateUser(db, login_id, hash_password, expire_date)
+    return CreateUser(db, login_id, hash_password, expire_at)
 
 def ServiceLogin(db: Session, login_id: str, password: str):
     redis = get_redis()

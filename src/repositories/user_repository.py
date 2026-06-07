@@ -8,9 +8,9 @@ def GetUserByLoginID(db: Session, login_id: str):
 	return db.query(User).filter(User.login_id == login_id).first()
 
 
-def CreateUser(db: Session, login_id: str, password_hash: str, expire_date: datetime):
+def CreateUser(db: Session, login_id: str, password_hash: str, expire_at: datetime):
 	user_id = AllocateNextBigIntIds(db, User, count=1)[0]
-	user = User(id=user_id, login_id=login_id, password_hash=password_hash, expire_date=expire_date)
+	user = User(id=user_id, login_id=login_id, password_hash=password_hash, expire_at=expire_at)
 	db.add(user)
 	try:
 		db.commit()
