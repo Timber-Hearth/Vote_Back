@@ -1,4 +1,5 @@
-﻿from pydantic import BaseModel, field_validator, model_validator
+﻿from datetime import datetime
+from pydantic import BaseModel, field_validator, model_validator
 
 MAX_BCRYPT_PASSWORD_BYTES = 72
 
@@ -6,6 +7,7 @@ MAX_BCRYPT_PASSWORD_BYTES = 72
 class SignUpRequest(BaseModel):
     login_id: str
     password: str
+    expire_at: datetime
 
     @model_validator(mode="before")
     @classmethod

@@ -1,4 +1,5 @@
 ﻿import os
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -8,13 +9,13 @@ from src.core.security import GetPasswordHash, VerifyPassword
 from src.repositories.user_repository import CreateUser, GetUserByLoginID
 
 
-def ServiceSignUp(db: Session, login_id : str, password : str):
+def ServiceSignUp(db: Session, login_id : str, password : str, expire_date: datetime):
     exist_user = GetUserByLoginID(db, login_id)
     if exist_user:
         raise UserAlreadyExistsError()
 
     hash_password = GetPasswordHash(password)
-    return CreateUser(db, login_id, hash_password)
+    return CreateUser(db, login_id, hash_password, expire_date)
 
 def ServiceLogin(db: Session, login_id: str, password: str):
     redis = get_redis()
