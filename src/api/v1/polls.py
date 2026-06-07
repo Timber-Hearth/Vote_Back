@@ -182,7 +182,10 @@ def GetPollResultDetail(
             cached_result = _NormalizePollResultDetail(cached_result, token)
         return {"data": cached_result}
     
-    result = BuildFinalPollData(db, poll)
+    if current_user is None:
+        result = BuildFinalPollData(db, poll)
+    else:
+        result = BuildFinalPollData(db, poll, current_user)
     result = _NormalizePollResultDetail(result, token)
     
     try:

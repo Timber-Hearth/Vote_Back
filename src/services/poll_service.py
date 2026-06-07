@@ -65,13 +65,17 @@ def PollPublicChecker(poll: Polls, current_user=None):
             return False
     return True
 
-def BuildFinalPollData(db: Session, poll: Polls) -> dict[str, object]:
+def BuildFinalPollData(db: Session, poll: Polls, current_user = None) -> dict[str, object]:
     data = CalculateVoteCount(db, poll.id)
     options = ServiceGetOptionsFromPollID(db, poll.id)
+    my_poll = False
+    if current_user is not None:
+        my_poll = True if poll.owner_id == current_user.id else False
     result = {
         "poll_data": {
             "id": str(poll.id),
             "owner_id": poll.owner_id,
+            "my_poll" : my_poll,
             "title": poll.title,
             "description": poll.description,
             "is_public_result": poll.is_public_result,
