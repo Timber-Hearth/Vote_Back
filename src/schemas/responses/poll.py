@@ -73,6 +73,7 @@ class PollResultPollDataResponse(BaseModel):
     title: str
     description: str | None = None
     is_public_result: bool
+    my_poll: bool
     is_closed: bool
     allow_multiple_choice: bool
     expire_at: datetime | None = None
