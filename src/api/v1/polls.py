@@ -167,8 +167,9 @@ def GetPollResultDetail(
     if not poll:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
 
-    if PollPublicChecker(poll, current_user) is False:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to view this poll")
+    # 본인의 poll detail은 본인만 볼 수 있게 하는게 아니라 모두가 볼수 있게 퍼블릭체크 제거
+    #if PollPublicChecker(poll, current_user) is False:
+    #    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to view this poll")
     
     key_prefix = os.environ.get("REDIS_KEY_POLL_RESULT", "poll_result:")
     key = f"{key_prefix}{poll.id}"
