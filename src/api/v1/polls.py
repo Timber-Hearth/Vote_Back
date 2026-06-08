@@ -116,7 +116,7 @@ def GetPoll(token: str, db: Annotated[Session, Depends(get_db)]):
         json.dumps(response_payload, default=str),
         ex=60
     )
-    
+
     return response_payload
 
 @poll_router.get(
@@ -138,7 +138,7 @@ def GetPollsByUserId(current_user: Annotated[User, Depends(GetCurrentUserFromJwt
     if cached_data is not None:
         print("Redis - GetDataFromRedis")
         return {"data": json.loads(cached_data)}
-    
+
     data = GetPollListByUserId(db, current_user.id)
     try:
         redis.set(key, json.dumps(data, default=str), ex=60)
@@ -170,11 +170,11 @@ def GetPollResultDetail(
     # 본인의 poll detail은 본인만 볼 수 있게 하는게 아니라 모두가 볼수 있게 퍼블릭체크 제거
     #if PollPublicChecker(poll, current_user) is False:
     #    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to view this poll")
-    
+
     key_prefix = os.environ.get("REDIS_KEY_POLL_RESULT", "poll_result:")
     key = f"{key_prefix}{poll.id}"
     redis = get_redis()
-    
+
     cached_data = redis.get(key)
     if cached_data is not None:
         print("Redis - GetDataFromRedis")
@@ -182,13 +182,13 @@ def GetPollResultDetail(
         if isinstance(cached_result, dict):
             cached_result = _NormalizePollResultDetail(cached_result, token)
         return {"data": cached_result}
-    
+
     if current_user is None:
         result = BuildFinalPollData(db, poll)
     else:
         result = BuildFinalPollData(db, poll, current_user)
     result = _NormalizePollResultDetail(result, token)
-    
+
     try:
         redis.set(
             key,
@@ -197,7 +197,7 @@ def GetPollResultDetail(
         )
     except Exception as exc:
         print(exc)
-    
+
     return {"data": result}
 
 @poll_router.post(
@@ -227,14 +227,14 @@ def ClosePoll(
     val = SetPollClose(db, poll)
     if val is False:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
-    
+
     try:
         redis = get_redis()
         key = f"{os.environ.get('REDIS_KEY_POLL', 'poll:')}{token}"
         redis.delete(key)
     except Exception as exc:
         print(exc)
-    
+
     return {"message" : "success"}
 
 @poll_router.delete(
@@ -269,7 +269,12 @@ def RemovePoll(
         redis = get_redis()
         key = f"{os.environ.get('REDIS_KEY_POLL', 'poll:')}{token}"
         redis.delete(key)
+
+        key_prefix = os.environ.get("REDIS_KEY_POLL_LIST")
+        key = f"{key_prefix}{current_user.id}"
+        redis.delete(key)
+
     except Exception as exc:
         print(exc)
-    
+
     return {"message" : "success"}
