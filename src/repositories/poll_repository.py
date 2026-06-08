@@ -65,6 +65,8 @@ def CreatePollWithOptionsAndToken(
 
 def GetPollListByUserId(db: Session, user_id):
     polls = db.query(Polls).filter(Polls.owner_id == user_id).all()
+    if len(polls) < 1:
+        return []
     poll_ids = [p.id for p in polls]
     tokens = db.query(QrTokens).filter(QrTokens.poll_id.in_(poll_ids)).all()
     token_map = {t.poll_id: t.tokens for t in tokens}
