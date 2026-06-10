@@ -13,3 +13,4 @@ class Polls(Base):
     group_id = Column(UUID(as_uuid=True), ForeignKey("poll_group.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
+    allow_multiple_choice = Column(Boolean, default=False)

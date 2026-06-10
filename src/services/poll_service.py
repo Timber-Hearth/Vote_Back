@@ -16,7 +16,7 @@ from src.repositories.poll_repository import (
 
 
 def ServiceCreatePollGroup(db: Session, owner_id: int, request)
-
+    #  id | owner_id | is_public_result | is_closed | created_at | expire_at | allow_multiple_choice | delete_after_hours | title | description
 def ServiceCreatePoll(db: Session, owner_id: int, request: CreatePollRequest):
     title = request.title
     description = request.description

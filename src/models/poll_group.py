@@ -19,5 +19,4 @@ class PollGroup(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
     expire_at = Column(TIMESTAMP(timezone=True), nullable=True, index=True)
 
-    allow_multiple_choice = Column(Boolean, default=False)
     delete_after_hours = Column(Integer, default=24)

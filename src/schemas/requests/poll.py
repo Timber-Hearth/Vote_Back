@@ -7,8 +7,6 @@ class CreatePollRequest(BaseModel):
     options: list[str]
 
     allow_multiple_choice: bool = False
-    delete_after_hours: int = 24
-    is_public_result: bool = False
 
     @field_validator("options")
     @classmethod
@@ -26,5 +24,6 @@ class CreatePollRequest(BaseModel):
         return value
 
 class CreatePollGroupRequest(BaseModel):
-    #  id | owner_id | is_public_result | is_closed | created_at | expire_at | allow_multiple_choice | delete_after_hours
+    # id | owner_id | is_public_result | is_closed | created_at | expire_at | allow_multiple_choice | delete_after_hours | title | description
     title: str
+    description: str | None = None
