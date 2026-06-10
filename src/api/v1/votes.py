@@ -11,6 +11,8 @@ from src.services.vote_service import GetAnonymousId, NormalizeAnonymousId, Serv
 
 vote_router = APIRouter(tags=["votes"])
 
+
+# TODO : 이곳 전부 다시 작업할것
 @vote_router.post(
     "/{token}",
     response_model=VoteResponse,

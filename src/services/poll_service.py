@@ -3,15 +3,13 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from sqlalchemy.orm import Session
 
+from src.models import PollGroup
 from src.core.redis_client import get_redis
 from src.models import Polls
 from src.repositories.vote_repository import CalculateVoteCount
 from src.schemas.requests.poll import CreatePollRequest
 from src.repositories.poll_repository import (
     CreatePollOnDB,
-    GetOptionsByPollID,
-    GetPollByToken,
-    GetPollByID,
 )
 
 def ServiceCreatePoll(db: Session, request: CreatePollRequest, poll_group_id):
@@ -33,19 +31,13 @@ def ServiceCreatePoll(db: Session, request: CreatePollRequest, poll_group_id):
         "poll_id": str(poll.id),
     }
 
+# TODO : 이거 그룹으로 바꿔
 def ServiceGetPoll(db: Session, token: str):
-    return GetPollByToken(db, token)
+    return GetPollGroupByToken(db, token)
 
+# TODO : 이거 그룹으로 바꿔
 def ServiceGetOptionsFromPollID(db: Session, poll_id):
     return GetOptionsByPollID(db, poll_id)
-
-def IsThisPollCanSeeAnyone(db: Session, poll_id):
-    poll_data = GetPollByID(db, poll_id)
-    if poll_data is None:
-        return False
-    if poll_data.is_public_result:
-        return True
-    return False
 
 def PollPublicChecker(poll: Polls, current_user=None):
     if not poll.is_public_result:
@@ -55,7 +47,9 @@ def PollPublicChecker(poll: Polls, current_user=None):
             return False
     return True
 
-def BuildFinalPollData(db: Session, poll: Polls, current_user = None) -> dict[str, object]:
+
+# TODO : 이걸 이용해서 응답 생성하자
+def BuildFinalPollData(db: Session, poll_group: PollGroup, current_user = None) -> dict[str, object]:
     data = CalculateVoteCount(db, poll.id)
     options = ServiceGetOptionsFromPollID(db, poll.id)
     my_poll = False
@@ -82,34 +76,3 @@ def BuildFinalPollData(db: Session, poll: Polls, current_user = None) -> dict[st
             for opt in options
         ]}
     return result
-
-
-def SetPollClose(db: Session, poll: Polls):
-    try:
-        poll.is_closed = True
-        db.commit()
-        db.refresh(poll)
-        return True
-    except Exception as e:
-        db.rollback()
-        print(e)
-        return False
-
-def RemoveSinglePoll(db: Session, poll: Polls):
-    try:
-        db.delete(poll)
-        db.commit()
-        return True
-    except Exception as e:
-        db.rollback()
-        print(e)
-        return False
-
-def DeletePollResultFromRedis(poll_data: Polls):
-    try:
-        redis = get_redis()
-        key_prefix = os.environ.get("REDIS_KEY_POLL_RESULT", "poll_result:")
-        key = f"{key_prefix}{poll_data.id}"
-        redis.delete(key)
-    except Exception as exc:
-        print(exc)

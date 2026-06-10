@@ -29,7 +29,7 @@ def HasAnonymousVoteForOptionIDs(
 		is not None
 	)
 
-
+# TODO : 이거 수정할거 있는지 확인해
 def CreateVotes(
 	db: Session,
 	poll_id,

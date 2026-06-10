@@ -8,6 +8,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from models import QrTokens, PollGroup
+from src.repositories.poll_group_repository import Repo_CreatePollGroup
+from src.repositories.qr_token_repository import Repo_CreateQrToken
 from src.schemas.requests.PollGroup import CreatePollGroupRequest
 from src.schemas.responses.poll_group import CreatePollDataResponse
 
@@ -16,7 +18,6 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from src.core.redis_client import get_redis
-from src.repositories.poll_repository import GetPollByToken, GetPollListByUserId
 from src.core.database import get_db
 from src.core.security import GetCurrentUserFromJwt, GetCurrentUserFromJwtOptional
 from src.exceptions.poll import PollError, PollNotFoundError
@@ -54,35 +55,14 @@ def CreatePollGroup(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(GetCurrentUserFromJwt)]
 ):
-    try:
-        poll_group = PollGroup(
-            title=request.title,
-            owner_id=current_user.id,
-            description=request.description,
-            is_public_result=request.is_public_result,
-            is_closed=False,
-            created_at=request.create_at,
-            expire_at=request.expire_at,
-            delete_after_hours=request.delete_after_hours
-        )
-        db.add(poll_group)
-        db.flush()
-
-        for single_poll in request.polls:
-            ServiceCreatePoll(db=db, request=single_poll, poll_group_id=poll_group.id)
+    poll_group = Repo_CreatePollGroup(db=db, request=request, current_user=current_user)
+    for single_poll in request.polls:
+        ServiceCreatePoll(db=db, request=single_poll, poll_group_id=poll_group.id)
+    qr_token = Repo_CreateQrToken(db=db, poll_group=poll_group)
+    # TODO : 레디스에 저장해두자
+    return {"title":request.title,"message":"true", "token": qr_token.tokens}
 
 
-        token = secrets.token_urlsafe(16)
-        qr_token = QrTokens(
-            poll_group_id=poll_group.id,
-            tokens=token,
-        )
-        db.add(qr_token)
-        db.commit()
-
-    except Exception as e:
-        db.rollback()
-        print(e)
-        return {"title": request.title, "message": "false"}
-
-    return {"title":request.title,"message":"true"}
+# TODO : 여기서 레디스에 있는거 불러오기, 없다면 ㄴpoll_service 에서 끌어올것
+def GetPollGroup():
+    pass
