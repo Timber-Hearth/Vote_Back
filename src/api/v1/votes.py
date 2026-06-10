@@ -6,7 +6,7 @@ from src.core.database import get_db
 from src.exceptions.vote import VoteError
 from src.schemas.requests.vote import VoteRequest
 from src.schemas.responses.vote import VoteResponse
-from src.services.poll_service import ServiceGetPoll, DeletePollResultFromRedis
+from src.services.poll_service import Service_GetPollGroup
 from src.services.vote_service import GetAnonymousId, NormalizeAnonymousId, ServiceVoteProcess
 
 vote_router = APIRouter(tags=["votes"])
@@ -32,14 +32,13 @@ def Vote(
     anonymous_id: str | None = Depends(GetAnonymousId),
     db: Session = Depends(get_db),
 ):
-    """익명 식별자 기준으로 투표를 처리하고 결과 캐시를 무효화합니다."""
-    poll_data = ServiceGetPoll(db, token)
-    if not poll_data:
+    poll_group_data = Service_GetPollGroup(db, token)
+    if not poll_group_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found")
     normalized_anonymous_id, is_new_cookie = NormalizeAnonymousId(anonymous_id)
 
     redis = get_redis()
-    lock_key = f"vote:lock:{poll_data.id}:{normalized_anonymous_id}"
+    lock_key = f"vote:lock:{poll_group_data.id}:{normalized_anonymous_id}"
     lock_acquired = False
 
     try:
@@ -52,7 +51,7 @@ def Vote(
     except Exception:
         pass
     try:
-        ServiceVoteProcess(db, poll_data, request.option_ids, normalized_anonymous_id)
+        ServiceVoteProcess(db, poll_group_data, request=request, anonymous_id=normalized_anonymous_id)
     except VoteError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     finally:
@@ -69,5 +68,5 @@ def Vote(
             httponly=True,
             max_age=60 * 60 * 24 * 365,
         )
-    DeletePollResultFromRedis(poll_data)
+    DeletePollResultFromRedis(poll_group_data)
     return {"success": "vote done"}

@@ -3,6 +3,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from src.schemas.requests import VoteRequest
 from src.models import PollOption, Vote
 from src.repositories.id_allocator import AllocateNextBigIntIds
 
@@ -29,12 +30,11 @@ def HasAnonymousVoteForOptionIDs(
 		is not None
 	)
 
-# TODO : 이거 수정할거 있는지 확인해
 def CreateVotes(
 	db: Session,
 	poll_id,
 	anonymous_id,
-	option_ids: Sequence[int],
+	request: VoteRequest
 ) -> None:
 	vote_ids = AllocateNextBigIntIds(db, Vote, count=len(option_ids))
 	vote_instances = []

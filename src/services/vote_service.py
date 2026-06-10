@@ -5,6 +5,9 @@ from datetime import UTC, datetime
 from fastapi import Request
 from sqlalchemy.orm import Session
 
+from models import PollGroup
+from repositories.poll_group_repository import Repo_GetPollListByToken
+from src.schemas.requests import VoteRequest
 from src.exceptions.vote import (
     VoteAlreadyCastError,
     VoteClosedError,
@@ -35,42 +38,35 @@ def NormalizeAnonymousId(anonymous_id: str | None) -> tuple[uuid.UUID, bool]:
     except (TypeError, ValueError, AttributeError):
         return uuid.uuid4(), True
 
-
-def IsThatOptionReallyExist(user_select: Sequence[int], options: Sequence) -> bool:
-    options_id = {x.id for x in options if x}
-    return set(user_select).issubset(options_id)
-
-
 def ServiceVoteProcess(
     db: Session,
-    poll_data: Polls | None,
-    selected_option_ids: Sequence[int],
+    poll_group_data: PollGroup | None,
+    request: VoteRequest,
     anonymous_id: uuid.UUID,
 ):
-    if poll_data is None:
+    if poll_group_data is None:
         raise VotePollNotFoundError()
 
-    if poll_data.expire_at and poll_data.expire_at < datetime.now(UTC):
+    if poll_group_data.expire_at and poll_group_data.expire_at < datetime.now(UTC):
         raise VoteExpiredError()
 
-    if poll_data.is_closed:
+    if poll_group_data.is_closed:
         raise VoteClosedError()
 
-    if not selected_option_ids:
+    if not request.vote_data:
         raise VoteNoOptionError()
 
-    if not poll_data.allow_multiple_choice and len(selected_option_ids) > 1:
-        raise VoteMultipleChoiceNotAllowedError()
+    polls = Repo_GetPollListByToken(db=db, token=poll_group_data.qr_token)
+    for item in polls:
+        if not item.allow_multiple_choice and len(request.vote_data.get(item.id)) > 1:
+            raise VoteMultipleChoiceNotAllowedError()
 
-    options = GetOptionsByPollID(db, poll_data.id)
-    if not options:
-        raise VoteNoOptionError()
+        options = GetOptionsByPollID(db, item.id)
+        if not options:
+            raise VoteNoOptionError()
 
-    if not IsThatOptionReallyExist(selected_option_ids, options):
-        raise VoteOptionNotFoundError()
+        if HasAnonymousVoteForOptionIDs(db, item.id, anonymous_id, request.vote_data.get(item.id)):
+            raise VoteAlreadyCastError()
 
-    if HasAnonymousVoteForOptionIDs(db, poll_data.id, anonymous_id, selected_option_ids):
-        raise VoteAlreadyCastError()
-
-    CreateVotes(db, poll_data.id, anonymous_id, selected_option_ids)
+    CreateVotes(db, poll_group_data, anonymous_id, request)
 

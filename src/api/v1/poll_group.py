@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from models import QrTokens, PollGroup
+from models import QrTokens, Polls
 from src.repositories.poll_group_repository import Repo_CreatePollGroup
 from src.repositories.qr_token_repository import Repo_CreateQrToken
 from src.schemas.requests.PollGroup import CreatePollGroupRequest
@@ -33,9 +33,9 @@ from src.schemas.responses.poll import (
 from src.services.poll_service import (
     BuildFinalPollData,
     PollPublicChecker,
-    ServiceCreatePoll,
+    Service_CreatePoll,
     ServiceGetOptionsFromPollID,
-    ServiceGetPoll, SetPollClose, RemoveSinglePoll,
+    Service_GetPollGroup, SetPollClose, RemoveSinglePoll,
 )
 poll_group_router = APIRouter(tags=["/poll_group"])
 
@@ -57,7 +57,7 @@ def CreatePollGroup(
 ):
     poll_group = Repo_CreatePollGroup(db=db, request=request, current_user=current_user)
     for single_poll in request.polls:
-        ServiceCreatePoll(db=db, request=single_poll, poll_group_id=poll_group.id)
+        Service_CreatePoll(db=db, request=single_poll, poll_group_id=poll_group.id)
     qr_token = Repo_CreateQrToken(db=db, poll_group=poll_group)
     # TODO : 레디스에 저장해두자
     return {"title":request.title,"message":"true", "token": qr_token.tokens}

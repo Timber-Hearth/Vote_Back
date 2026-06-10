@@ -13,6 +13,8 @@ class PollGroup(Base):
     owner_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     description = Column(Text, nullable=True)
 
+    qr_token = Column(String(255), nullable=False)
+
     is_public_result = Column(Boolean, default=False)
     is_closed = Column(Boolean, default=False, index=True)
 

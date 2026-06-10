@@ -2,11 +2,11 @@ import secrets
 
 from sqlalchemy.orm import Session
 
-from models import PollGroup
+from models import Polls
 from src.models import QrTokens
 
 
-def Repo_CreateQrToken(db: Session, poll_group: PollGroup) -> QrTokens:
+def Repo_CreateQrToken(db: Session, poll_group: Polls) -> QrTokens:
     try:
         token = secrets.token_urlsafe(16)
         qr_token = QrTokens(
