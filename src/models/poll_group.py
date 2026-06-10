@@ -9,8 +9,10 @@ from src.core.database import Base
 class PollGroup(Base):
     __tablename__ = "poll_group"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(255), nullable=False)
     owner_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+    description = Column(Text, nullable=True)
+
     is_public_result = Column(Boolean, default=False)
     is_closed = Column(Boolean, default=False, index=True)
 

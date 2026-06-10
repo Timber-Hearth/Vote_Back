@@ -15,6 +15,8 @@ from src.repositories.poll_repository import (
 )
 
 
+def ServiceCreatePollGroup(db: Session, owner_id: int, request)
+
 def ServiceCreatePoll(db: Session, owner_id: int, request: CreatePollRequest):
     title = request.title
     description = request.description

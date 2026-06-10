@@ -25,3 +25,6 @@ class CreatePollRequest(BaseModel):
             raise ValueError("delete_after_hours must be greater than 0")
         return value
 
+class CreatePollGroupRequest(BaseModel):
+    #  id | owner_id | is_public_result | is_closed | created_at | expire_at | allow_multiple_choice | delete_after_hours
+    title: str
