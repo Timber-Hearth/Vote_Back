@@ -8,41 +8,29 @@ from src.models import Polls
 from src.repositories.vote_repository import CalculateVoteCount
 from src.schemas.requests.poll import CreatePollRequest
 from src.repositories.poll_repository import (
-    CreatePollWithOptionsAndToken,
+    CreatePollOnDB,
     GetOptionsByPollID,
     GetPollByToken,
     GetPollByID,
 )
 
-
-def ServiceCreatePollGroup(db: Session, owner_id: int, request)
-    #  id | owner_id | is_public_result | is_closed | created_at | expire_at | allow_multiple_choice | delete_after_hours | title | description
-def ServiceCreatePoll(db: Session, owner_id: int, request: CreatePollRequest):
+def ServiceCreatePoll(db: Session, request: CreatePollRequest, poll_group_id):
     title = request.title
     description = request.description
     options = request.options
     allow_multiple_choice = request.allow_multiple_choice
-    delete_after_hours = request.delete_after_hours
-    is_public_result = request.is_public_result
-    
-    expire_at = datetime.now(UTC) + timedelta(hours=delete_after_hours)
+    poll_group_id = poll_group_id
 
-    qr_token_string = secrets.token_urlsafe(16)
-    poll, token = CreatePollWithOptionsAndToken(
+    poll = CreatePollOnDB(
         db,
-        owner_id=owner_id,
         title=title,
         description=description,
+        poll_group_id=poll_group_id,
         options=options,
         allow_multiple_choice=allow_multiple_choice,
-        is_public_result=is_public_result,
-        expire_at=expire_at,
-        delete_after_hours=delete_after_hours,
-        token=qr_token_string,
     )
     return {
         "poll_id": str(poll.id),
-        "token": token,
     }
 
 def ServiceGetPoll(db: Session, token: str):

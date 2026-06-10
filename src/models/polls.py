@@ -9,7 +9,7 @@ from src.core.database import Base
 class Polls(Base):
     __tablename__ = "polls"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, autoincrement=True)
     group_id = Column(UUID(as_uuid=True), ForeignKey("poll_group.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)

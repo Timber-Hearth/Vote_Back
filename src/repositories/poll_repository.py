@@ -6,28 +6,19 @@ from src.models import PollOption, Polls, QrTokens
 from src.repositories.id_allocator import AllocateNextBigIntIds
 
 
-def CreatePollWithOptionsAndToken(
+def CreatePollOnDB(
     db: Session,
-    *,
-    owner_id: int,
     title: str,
-    description: str | None,
+    description: str,
+    poll_group_id: int,
     options: Sequence[str],
     allow_multiple_choice: bool,
-    is_public_result: bool,
-    expire_at,
-    delete_after_hours: int,
-    token: str,
 ):
     poll = Polls(
-        owner_id=owner_id,
         title=title,
-        description=description,  # type: ignore[arg-type]
-        is_closed=False,
-        is_public_result=is_public_result,
-        expire_at=expire_at,
+        description=description,
+        group_id=poll_group_id,
         allow_multiple_choice=allow_multiple_choice,
-        delete_after_hours=delete_after_hours,
     )
     db.add(poll)
     db.flush()
@@ -48,12 +39,6 @@ def CreatePollWithOptionsAndToken(
         for option in option_instances:
             db.add(option)
 
-    qr_token = QrTokens(
-        poll_id=poll.id,
-        tokens=token,
-    )
-    db.add(qr_token)
-
     try:
         db.commit()
     except Exception:
@@ -61,7 +46,7 @@ def CreatePollWithOptionsAndToken(
         raise
 
     db.refresh(poll)
-    return poll, token
+    return poll
 
 def GetPollListByUserId(db: Session, user_id):
     polls = db.query(Polls).filter(Polls.owner_id == user_id).all()

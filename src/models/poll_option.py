@@ -15,4 +15,3 @@ class PollOption(Base):
     poll_id = Column(UUID(as_uuid=True), ForeignKey("polls.id", ondelete="CASCADE"), nullable=False, index=True)
     option_text = Column(String(255), nullable=False)
     display_order = Column(Integer, nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
