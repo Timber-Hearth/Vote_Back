@@ -17,7 +17,6 @@ from src.exceptions.vote import (
     VoteOptionNotFoundError,
     VotePollNotFoundError,
 )
-from src.models import Polls
 from src.repositories.vote_repository import (
     CreateVotes,
     GetOptionsByPollID,

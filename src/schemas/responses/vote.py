@@ -3,4 +3,3 @@
 
 class VoteResponse(BaseModel):
     success: str
-

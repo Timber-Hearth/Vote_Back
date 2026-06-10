@@ -1,17 +1,12 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.v1.poll_group import poll_group_router
-from src.api.v1.votes import vote_router
 from src.api.v1.auth import auth_router
-from src.api.v1.polls import poll_router
-from src.schemas.responses.common import RootResponse
 
 app = FastAPI()
 app.include_router(router=auth_router, prefix="/auth", tags=["auth"])
-app.include_router(router=poll_router, prefix="/polls", tags=["polls"])
-app.include_router(router=vote_router, prefix="/vote", tags=["vote"])
-app.include_router(router=poll_group_router, prefix="/poll_group", tags=["poll_group"])
+app.include_router(router=poll_group_router, prefix="/poll", tags=["poll"])
+
 
 app.add_middleware(
     CORSMiddleware,
