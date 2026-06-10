@@ -55,38 +55,34 @@ def CreatePollGroup(
     current_user: Annotated[User, Depends(GetCurrentUserFromJwt)]
 ):
     try:
-        poll_group_id = GetLastPollGroupId()
-        for single_poll in request.polls:
-            ServiceCreatePoll(db=db, request=single_poll, poll_group_id=poll_group_id)
-
-
-        token = secrets.token_urlsafe(16)
-        qr_token = QrTokens(
-            poll_group_id=GetLastPollGroupId(),
-            tokens=token,
-        )
-        db.add(qr_token)
-
         poll_group = PollGroup(
             title=request.title,
             owner_id=current_user.id,
             description=request.description,
             is_public_result=request.is_public_result,
             is_closed=False,
-            created_at= datetime,
-            expire_at=datetime,
+            created_at=request.create_at,
+            expire_at=request.expire_at,
             delete_after_hours=request.delete_after_hours
         )
         db.add(poll_group)
-        db.refresh()
+        db.flush()
+
+        for single_poll in request.polls:
+            ServiceCreatePoll(db=db, request=single_poll, poll_group_id=poll_group.id)
+
+
+        token = secrets.token_urlsafe(16)
+        qr_token = QrTokens(
+            poll_group_id=poll_group.id,
+            tokens=token,
+        )
+        db.add(qr_token)
+        db.commit()
+
     except Exception as e:
+        db.rollback()
         print(e)
         return {"title": request.title, "message": "false"}
 
     return {"title":request.title,"message":"true"}
-
-
-
-# 나중에 pollgroupid 마지막 값 리턴하게 바꿔
-def GetLastPollGroupId() -> int:
-    return 0

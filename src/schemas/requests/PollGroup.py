@@ -12,6 +12,7 @@ class CreatePollGroupRequest(BaseModel):
     description: str
     is_public_result: bool
     expire_at: datetime
+    create_at: datetime
     delete_after_hours: int
     polls: list[CreatePollRequest]
 
