@@ -16,7 +16,6 @@ class Request_Create_PollGroup(BaseModel):
     is_public_result : str
     expire_at : str
     poll_data_list : list[SinglePollData]
-    options : list[OptionData]
 
     @field_validator("polls")
     def validate_polls(cls, value):

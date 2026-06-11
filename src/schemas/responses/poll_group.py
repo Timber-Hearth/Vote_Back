@@ -14,4 +14,3 @@ class Response_PollGroup_Token(BaseModel):
     is_public_result : str
     expire_at : str
     poll_data_list : list[SinglePollData]
-    options : list[OptionData]

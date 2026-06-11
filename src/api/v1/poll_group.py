@@ -4,12 +4,12 @@ from httpx import request
 from sqlalchemy.orm import Session
 
 from src.services.auth_service import GetAnonymousId
-from src.services.poll_group_services import BuildPollGroupDataForUser
+from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
-from src.repositories.poll_group_repository import Repo_GetPollGroupData
+from src.repositories.poll_group_repository import Repo_CreatePollGroup, Repo_GetPollGroupData
 from src.core.database import get_db
 
-from src.schemas.requests.PollGroup import Get_PollGroupRequest
+from src.schemas.requests.PollGroup import Get_PollGroupRequest, Request_Create_PollGroup
 from src.schemas.responses.poll_group import Response_PollGroup_Token
 
 poll_group_router = APIRouter(tags=["poll_group"])
@@ -65,8 +65,16 @@ def Get_PollGroupTokens(db: Session = Depends(get_db), current_user = Depends(Ge
         500: {"description": "서버 에러"},
     }
 )
-def Create_PollGroup(db: Session = Depends(get_db), current_user = Depends( GetCurrentUserFromJwt), request: request):
+def Create_PollGroup(request: Request_Create_PollGroup, db: Session = Depends(get_db), current_user = Depends( GetCurrentUserFromJwt)):
     try:
-        
+        if request is None:
+            raise HTTPException(status_code=400, detail="잘못된 요청입니다.")
+        if VerifyPollGroupData(request) and current_user is not None:
+            if Repo_CreatePollGroup(db, current_user.id, request):
+                return {"message": "success"}
+            else:
+                raise HTTPException(status_code=500, detail="투표 그룹 생성에 실패했습니다.")
+        else:
+            raise HTTPException(status_code=400, detail="유효하지 않은 투표 그룹 데이터입니다.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
