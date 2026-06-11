@@ -1,6 +1,6 @@
 ﻿from datetime import datetime
 from sqlalchemy.orm import Session
-from src.models import User, Polls
+from src.models import User
 from src.repositories.id_allocator import AllocateNextBigIntIds
 
 

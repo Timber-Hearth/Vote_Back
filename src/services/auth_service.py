@@ -1,5 +1,7 @@
 ﻿import os
 from datetime import datetime
+import requests
+import uuid
 
 from sqlalchemy.orm import Session
 
@@ -32,3 +34,17 @@ def ServiceLogin(db: Session, login_id: str, password: str):
         return exist_user
 
     raise InvalidCredentialsError()
+
+
+def GetAnonymousId(request: requests) -> str | None:
+    return request.cookies.get("anonymous_id")
+
+
+def NormalizeAnonymousId(anonymous_id: str | None) -> tuple[uuid.UUID, bool]:
+    if anonymous_id is None:
+        return uuid.uuid4(), True
+
+    try:
+        return uuid.UUID(str(anonymous_id)), False
+    except (TypeError, ValueError, AttributeError):
+        return uuid.uuid4(), True

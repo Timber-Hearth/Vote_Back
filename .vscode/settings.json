@@ -1,0 +1,39 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "__pycache__": true,
+        ".idea": true,
+        ".junie": true,
+        ".pytest_cache": true,
+        ".venv": true,
+        "src/__pycache__": true,
+        "src/api/__pycache__": true,
+        "src/api/v1/__pycache__": true,
+        "src/schemas/__pycache__": true,
+        "src/schemas/requests/__pycache__": true,
+        "src/services/__pycache__": true,
+        "src/repositories/__pycache__": true,
+        "src/core/__pycache__": true,
+        "src/models/__pycache__": true
+    },
+    "hide-files.files": [
+        "__pycache__",
+        ".idea",
+        ".junie",
+        ".pytest_cache",
+        ".venv",
+        "src/__pycache__",
+        "src/api/__pycache__",
+        "src/api/v1/__pycache__",
+        "src/schemas/__pycache__",
+        "src/schemas/requests/__pycache__",
+        "src/services/__pycache__",
+        "src/repositories/__pycache__",
+        "src/core/__pycache__",
+        "src/models/__pycache__"
+    ]
+}
