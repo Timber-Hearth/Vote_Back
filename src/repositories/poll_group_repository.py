@@ -1,4 +1,7 @@
-from schemas.requests.PollGroup import Request_Create_PollGroup
+import secrets
+
+from src.schemas.requests.PollGroup import Request_Create_PollGroup
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.models import PollOption, PollGroup
@@ -22,6 +25,7 @@ def Repo_CreatePollGroup(db: Session, owner_id: int, data: Request_Create_PollGr
                owner_id=owner_id,
                title=data.title,
                description=data.description,
+               qr_token=secrets.token_urlsafe(16),
                created_at=data.created_at,
                delete_after_hours=data.delete_after_hours,
                is_public_result=data.is_public_result,
