@@ -2,42 +2,28 @@ from schemas.requests.PollGroup import Request_Create_PollGroup
 
 from src.repositories.poll_group_repository import Repo_GetOptionsFromPollId, Repo_GetPollGroupData, Repo_GetPollDataFromPollGroupId
 
-
 def BuildPollGroupDataForUser(db, token):
-    data = Repo_GetPollGroupData(db=db, token=token)
-    if data is None:
-        print("no data exist")
-        # TODO : 에러 작성
-    polls = Repo_GetPollDataFromPollGroupId(db, data.id)
-    poll_data_list = []
-    for item in polls:
-        poll_id = item.id
-        Repo_GetOptionsFromPollId(db, poll_id)
-        if poll_id is None:
-            print("no data exist")
-            # TODO : 에러 작성
-        poll_data_list.append({
-            "title" : item.title,
-            "description" : item.description,
-            "allow_multiple_choice" : item.allow_multiple_choice,
-            "options" : Repo_GetOptionsFromPollId(db, poll_id)
+    group = Repo_GetPollGroupData(db=db, token=token)
+    if group is None:
+        raise Exception("no data exist")
+    polls = Repo_GetPollDataFromPollGroupId(db, group.id)
+    result = []
+    for poll in polls:
+        options = Repo_GetOptionsFromPollId(db, poll.id)
+
+        result.append({
+            "title": poll.title,
+            "description": poll.description,
+            "allow_multiple_choice": poll.allow_multiple_choice,
+            "options": [
+                {
+                    "option_text": opt.option_text,
+                    "display_order": opt.display_order
+                }
+                for opt in options
+            ]
         })
-
-
-
-    open_data = {
-        "token" : data.qr_token,
-        "title" : data.title,
-        "description" : data.description,
-        "is_closed" : data.is_closed,
-        "created_at" : data.created_at,
-        "delete_after_hours" : data.delete_after_hours,
-        "is_public_result" : data.is_public_result,
-        "expire_at" : data.expire_at,
-        "poll" : poll_data_list
-    }
-
-    return open_data
+    return result
 
 def VerifyPollGroupData(request: Request_Create_PollGroup):
     if request is None:

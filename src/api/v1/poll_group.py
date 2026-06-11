@@ -1,15 +1,13 @@
 from core.security import GetCurrentUserFromJwt
 from fastapi import APIRouter, Depends, HTTPException
-from httpx import request
 from sqlalchemy.orm import Session
 
-from src.services.auth_service import GetAnonymousId
 from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
 from src.repositories.poll_group_repository import Repo_CreatePollGroup, Repo_GetPollGroupData
 from src.core.database import get_db
 
-from src.schemas.requests.PollGroup import Get_PollGroupRequest, Request_Create_PollGroup
+from src.schemas.requests.PollGroup import Request_Create_PollGroup
 from src.schemas.responses.poll_group import Response_PollGroup_Token
 
 poll_group_router = APIRouter(tags=["poll_group"])
@@ -27,12 +25,12 @@ poll_group_router = APIRouter(tags=["poll_group"])
         500 : {"description": "서버 에러"}
     }
 )
-def Get_PollData(request: Get_PollGroupRequest, db: Session = Depends(get_db)):
+def Get_PollData(token: str, db: Session = Depends(get_db)):
     try:
-        data = Repo_GetPollGroupData(db=db, token=request.token)
+        data = Repo_GetPollGroupData(db=db, token=token)
         if data is None:
             raise HTTPException(status_code=404, detail="투표를 찾을 수 없습니다.")
-        return { "data" : BuildPollGroupDataForUser(db, request.token), "message" : "success" }
+        return { "data" : BuildPollGroupDataForUser(db, token), "message" : "success" }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

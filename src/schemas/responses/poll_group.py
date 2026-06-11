@@ -1,16 +1,19 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-from schemas.requests.PollGroup import OptionData, SinglePollData
+
+class Response_Option(BaseModel):
+    option_text: str
+    display_order: int
+
+
+class Response_Poll(BaseModel):
+    title: str
+    description: str
+    allow_multiple_choice: bool
+    options: list[Response_Option]
 
 
 class Response_PollGroup_Token(BaseModel):
-    token : str
-    title : str
-    description : str
-    is_closed : str
-    created_at : str
-    delete_after_hours : str
-    is_public_result : str
-    expire_at : str
-    poll_data_list : list[SinglePollData]
+    message: str
+    data: list[Response_Poll]
