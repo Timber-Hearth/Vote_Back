@@ -17,7 +17,7 @@ class Request_Create_PollGroup(BaseModel):
     expire_at : str
     poll_data_list : list[SinglePollData]
 
-    @field_validator("polls")
+    @field_validator("poll_data_list")
     def validate_polls(cls, value):
         if not value:
             raise ValueError("투표는 최소 하나 이상이어야 합니다.")
