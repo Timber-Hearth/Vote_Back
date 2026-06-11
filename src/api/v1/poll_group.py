@@ -56,7 +56,7 @@ def Get_PollGroupTokens(db: Session = Depends(get_db), current_user = Depends(Ge
 
 
 @poll_group_router.post(
-    path="create_poll_group",
+    path="/create_poll_group",
     summary="투표 그룹 생성",
     description="투표 그룹 생성",
     response_description="투표 그룹 생성 결과",
@@ -65,11 +65,12 @@ def Get_PollGroupTokens(db: Session = Depends(get_db), current_user = Depends(Ge
         500: {"description": "서버 에러"},
     }
 )
-def Create_PollGroup(request: Request_Create_PollGroup, db: Session = Depends(get_db), current_user = Depends( GetCurrentUserFromJwt)):
+def Create_PollGroup(request: Request_Create_PollGroup, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
         if request is None:
             raise HTTPException(status_code=400, detail="잘못된 요청입니다.")
         if VerifyPollGroupData(request) and current_user is not None:
+            # TODO : 이곳에 qr 생성 로직 추가
             if Repo_CreatePollGroup(db, current_user.id, request):
                 return {"message": "success"}
             else:

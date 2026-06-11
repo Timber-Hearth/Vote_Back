@@ -2,7 +2,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_validator
 
-from src.schemas.requests import CreatePollRequest
 
 
 class Get_PollGroupRequest(BaseModel):
@@ -13,7 +12,7 @@ class Request_Create_PollGroup(BaseModel):
     description : str
     created_at : str
     delete_after_hours : str
-    is_public_result : str
+    is_public_result : bool
     expire_at : str
     poll_data_list : list[SinglePollData]
 
@@ -31,4 +30,3 @@ class SinglePollData(BaseModel):
 
 class OptionData(BaseModel):
     option_text : str
-    display_order : int

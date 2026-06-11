@@ -1,8 +1,8 @@
 ﻿import os
 from datetime import datetime
-import requests
 import uuid
 
+from fastapi import requests
 from sqlalchemy.orm import Session
 
 from src.core.redis_client import get_redis
@@ -11,7 +11,7 @@ from src.core.security import GetPasswordHash, VerifyPassword
 from src.repositories.user_repository import CreateUser, GetUserByLoginID
 
 
-def ServiceSignUp(db: Session, login_id : str, password : str, expire_at: datetime):
+def ServiceSignUp(db: Session, login_id : str, password : str, expire_at: datetime = None):
     exist_user = GetUserByLoginID(db, login_id)
     if exist_user:
         raise UserAlreadyExistsError()

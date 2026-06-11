@@ -40,16 +40,17 @@ def Repo_CreatePollGroup(db: Session, owner_id: int, data: Request_Create_PollGr
                db.add(new_poll)
                db.commit()
                db.refresh(new_poll)
-
+               counter = 0
                for option in poll_data.options:
                     new_option = PollOption(
                          poll_id=new_poll.id,
                          option_text=option.option_text,
-                         display_order=option.display_order
+                         display_order=counter
                     )
                     db.add(new_option)
                     db.commit()
                     db.refresh(new_option)
+                    counter += 1
      except Exception as e:
           db.rollback()
           print(e)
