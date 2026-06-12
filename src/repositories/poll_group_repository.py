@@ -70,3 +70,16 @@ def Repo_CreatePollGroup(db: Session, owner_id: int, data: Request_Create_PollGr
           print(e)
           return False
      return True
+
+def Repo_AddDeleteTime(db: Session, token: str, add_hours: int) -> bool:
+     try:
+          poll_group = db.query(PollGroup).filter(PollGroup.qr_token == token).first()
+          if poll_group is None:
+               return False
+          poll_group.delete_after_hours += add_hours
+          db.commit()
+     except Exception as e:
+          db.rollback()
+          print(e)
+          return False
+     return True

@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 
 from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
-from src.repositories.poll_group_repository import Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker
+from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker
 from src.core.database import get_db
 
-from src.schemas.requests.PollGroup import Request_Create_PollGroup
+from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup
 from src.schemas.responses.poll_group import Response_PollGroup_Token
 
 poll_group_router = APIRouter(tags=["poll_group"])
@@ -124,5 +124,32 @@ def Open_PollGroup(token: str, db: Session = Depends(get_db), current_user = Dep
         poll_group.is_closed = False
         db.commit()
         return {"message": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@poll_group_router.post(
+    path="/change_delete_time/",
+    request_body=ChangeTimeRequest,
+    summary="투표 그룹 삭제 시간 변경",
+    description="투표 그룹 삭제 시간 변경",
+    response_description="투표 그룹 삭제 시간 변경 결과",
+    responses={
+        200: {"description": "투표 그룹 삭제 시간이 성공적으로 변경되었습니다."},
+        403: {"description": "권한이 없습니다."},
+        404: {"description": "투표 그룹을 찾을 수 없습니다."},
+        500: {"description": "서버 에러"},
+    }
+)
+def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+    try:
+        if Repo_OwnerCheker(db, current_user.id, request.token) is not True:
+            raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
+        poll_group = Repo_GetPollGroupByToken(request.token, db)
+        if poll_group is None:
+            raise HTTPException(status_code=404, detail="투표 그룹을 찾을 수 없습니다.")
+        if Repo_AddDeleteTime(db, request.token, request.add_hours):
+            return {"message": "success"}
+        else:
+            raise HTTPException(status_code=500, detail="투표 그룹 삭제 시간 변경에 실패했습니다.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

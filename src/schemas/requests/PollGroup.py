@@ -30,3 +30,7 @@ class SinglePollData(BaseModel):
 
 class OptionData(BaseModel):
     option_text : str
+    
+class ChangeTimeRequest(BaseModel):
+    token : str
+    add_hours : int
