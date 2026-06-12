@@ -1,8 +1,8 @@
-"""initial schema
+"""add poll group title
 
-Revision ID: f2cadaf0b045
+Revision ID: 8331e7aa2e5d
 Revises: 
-Create Date: 2026-06-10 15:48:23.620142
+Create Date: 2026-06-12 15:37:40.164993
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f2cadaf0b045'
+revision: str = '8331e7aa2e5d'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
