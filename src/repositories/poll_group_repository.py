@@ -96,3 +96,16 @@ def Repo_SetPublic(db: Session, token: str, is_public: bool) -> bool:
           print(e)
           return False
      return True
+
+def Repo_EditExpireTime(db: Session, token: str, add_hours: int) -> bool:
+     try:
+          poll_group = db.query(PollGroup).filter(PollGroup.qr_token == token).first()
+          if poll_group is None:
+               return False
+          poll_group.expire_at = func.date_add(poll_group.expire_at, func.interval(add_hours, 'hour'))
+          db.commit()
+     except Exception as e:
+          db.rollback()
+          print(e)
+          return False
+     return True

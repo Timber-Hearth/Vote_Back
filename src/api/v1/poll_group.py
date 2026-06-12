@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
-from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker, Repo_SetPublic
+from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker, Repo_SetPublic, Repo_EditExpireTime
 from src.core.database import get_db
 
 from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup, SetPublicRequest
@@ -106,7 +106,7 @@ def Close_PollGroup(token: str, db: Session = Depends(get_db), current_user = De
     path="/open_poll_group/{token}",
     summary="투표 그룹 열기",
     description="투표 그룹 열기",
-    response_description="투표 그룹 열기 결과",
+    response_description="투표 그룹 열기 결과, 그러니까 is_closed가 false로 바뀌는 결과",
     responses={
         200: {"description": "투표 그룹이 성공적으로 열렸습니다."},
         403: {"description": "권한이 없습니다."},
@@ -153,7 +153,34 @@ def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cur
             raise HTTPException(status_code=500, detail="투표 그룹 삭제 시간 변경에 실패했습니다.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
+@poll_group_router.post(
+    path="/edit_expire_time/",
+    request_body=ChangeTimeRequest,
+    summary="투표 그룹 만료 시간 변경",
+    description="투표 그룹 만료 시간 변경",
+    response_description="투표 그룹 만료 시간 변경 결과",
+    responses={
+        200: {"description": "투표 그룹 만료 시간이 성공적으로 변경되었습니다."},
+        403: {"description": "권한이 없습니다."},
+        404: {"description": "투표 그룹을 찾을 수 없습니다."},
+        500: {"description": "서버 에러"},
+    }
+)
+def EditExpireTime(request: ChangeTimeRequest, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+    try:
+        if Repo_OwnerCheker(db, current_user.id, request.token) is not True:
+            raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
+        poll_group = Repo_GetPollGroupByToken(request.token, db)
+        if poll_group is None:
+            raise HTTPException(status_code=404, detail="투표 그룹을 찾을 수 없습니다.")
+        if Repo_EditExpireTime(db, request.token, request.add_hours):
+            return {"message": "success"}
+        else:
+            raise HTTPException(status_code=500, detail="투표 그룹 만료 시간 변경에 실패했습니다.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
 @poll_group_router.post(
     path="/set_public/{token}/{is_public}",
