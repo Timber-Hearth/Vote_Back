@@ -7,7 +7,17 @@ from sqlalchemy.orm import Session
 from src.models import PollOption, PollGroup
 from src.models import Poll
 
+def Repo_OwnerCheker(db, user_id, poll_group_id):
+    group = db.query(PollGroup).filter(PollGroup.id == poll_group_id).first()
+    if group is None:
+          return False
+    if group.owner_id != user_id:
+          return False
+    return True
 
+def Repo_GetPollGroupByToken(token, db):
+    poll_group = db.query(PollGroup).filter(PollGroup.token == token).first()
+    return poll_group
 
 
 def Repo_GetPollGroupData(db: Session, token: str) -> type[PollGroup] | None:

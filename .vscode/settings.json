@@ -17,7 +17,6 @@
         "src/schemas/requests/__pycache__": true,
         "src/services/__pycache__": true,
         "src/repositories/__pycache__": true,
-        "src/core/__pycache__": true,
         "src/models/__pycache__": true
     },
     "hide-files.files": [
