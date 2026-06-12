@@ -34,3 +34,7 @@ class OptionData(BaseModel):
 class ChangeTimeRequest(BaseModel):
     token : str
     add_hours : int
+    
+class SetPublicRequest(BaseModel):
+    token : str
+    is_public : bool

@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 
 from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
-from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker
+from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker, Repo_SetPublic
 from src.core.database import get_db
 
-from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup
+from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup, SetPublicRequest
 from src.schemas.responses.poll_group import Response_PollGroup_Token
 
 poll_group_router = APIRouter(tags=["poll_group"])
@@ -151,5 +151,32 @@ def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cur
             return {"message": "success"}
         else:
             raise HTTPException(status_code=500, detail="투표 그룹 삭제 시간 변경에 실패했습니다.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@poll_group_router.post(
+    path="/set_public/{token}/{is_public}",
+    request_body=SetPublicRequest,
+    summary="투표 그룹 공개 여부 설정",
+    description="투표 그룹 공개 여부 설정",
+    response_description="투표 그룹 공개 여부 설정 결과",
+    responses={
+        200: {"description": "투표 그룹 공개 여부가 성공적으로 설정되었습니다."},
+        403: {"description": "권한이 없습니다."},
+        404: {"description": "투표 그룹을 찾을 수 없습니다."},
+        500: {"description": "서버 에러"},
+    }
+)
+def SetPublic(request: SetPublicRequest, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+    try:
+        if Repo_OwnerCheker(db, current_user.id, request.token) is not True:
+            raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
+        poll_group = Repo_GetPollGroupByToken(request.token, db)
+        if poll_group is None:
+            raise HTTPException(status_code=404, detail="투표 그룹을 찾을 수 없습니다.")
+        if not Repo_SetPublic(db, request.token, request.is_public):
+            raise HTTPException(status_code=500, detail="투표 그룹 공개 여부 설정에 실패했습니다.")
+        return {"message": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

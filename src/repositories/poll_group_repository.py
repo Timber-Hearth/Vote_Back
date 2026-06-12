@@ -83,3 +83,16 @@ def Repo_AddDeleteTime(db: Session, token: str, add_hours: int) -> bool:
           print(e)
           return False
      return True
+
+def Repo_SetPublic(db: Session, token: str, is_public: bool) -> bool:
+     try:
+          poll_group = db.query(PollGroup).filter(PollGroup.qr_token == token).first()
+          if poll_group is None:
+               return False
+          poll_group.is_public_result = is_public
+          db.commit()
+     except Exception as e:
+          db.rollback()
+          print(e)
+          return False
+     return True
