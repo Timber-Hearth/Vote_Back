@@ -10,10 +10,10 @@ from src.core.redis_client import get_redis
 from src.core.security import ALGORITHM, SECRET_KEY, CreateAccessToken, oauth2_scheme
 from src.core.util import StrConvertToHashForRedis
 from src.core.database import get_db
-from src.exceptions.auth import AuthError, LoginAttemptLimitExceededError
+from src.exceptions.auth import AuthError, LoginAttemptLimitExceededError, TooManySignupRequestsError
 from src.schemas.requests.auth import LoginRequest, SignUpRequest
 from src.schemas.responses.auth import AuthMessageResponse, LoginResponse
-from src.services.auth_service import ServiceLogin, ServiceSignUp, SetExpireAtDate
+from src.services.auth_service import GetClientIp, ServiceLogin, ServiceSignUp, SetExpireAtDate
 
 auth_router = APIRouter(tags=["auth"])
 
@@ -54,11 +54,20 @@ def Login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
     response_description="회원가입 결과",
     responses={
         409: {"description": "이미 존재하는 아이디입니다."},
+        429: {"description": "IP당 회원가입 시도 횟수를 초과했습니다. 잠시 후 다시 시도하세요."},
     },
 )
 def SignUp(request: SignUpRequest, db: Annotated[Session, Depends(get_db)]):
     """회원가입 요청을 처리하고 성공 메시지를 반환합니다."""
     try:
+        ip = GetClientIp(request)
+        redis = get_redis()
+        redis_key = os.environ.get("REDIS_KEY_AUTH_SIGNUP_TRY_IP_LIMIT") + str(ip)
+        count = redis.incr(redis_key)
+        if count == 1:
+            redis.expire(redis_key, 60)
+        if count > 5:
+            raise TooManySignupRequestsError()
         expire_at = SetExpireAtDate(request)
         ServiceSignUp(db, request.login_id, request.password, expire_at)
     except AuthError as exc:

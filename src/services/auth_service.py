@@ -51,3 +51,15 @@ def NormalizeAnonymousId(anonymous_id: str | None) -> tuple[uuid.UUID, bool]:
         return uuid.UUID(str(anonymous_id)), False
     except (TypeError, ValueError, AttributeError):
         return uuid.uuid4(), True
+    
+    
+def GetClientIp(request: Request) -> str:
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+
+    x_real_ip = request.headers.get("x-real-ip")
+    if x_real_ip:
+        return x_real_ip
+
+    return request.client.host
