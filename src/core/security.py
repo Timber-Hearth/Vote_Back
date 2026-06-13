@@ -1,5 +1,6 @@
 ﻿import os
 from hashlib import sha256
+import secrets
 from typing import Annotated, Any
 
 from fastapi import HTTPException
@@ -110,3 +111,7 @@ def IsTokenBlacklisted(token: str) -> bool:
         return bool(redis.exists(key))
     except Exception:
         return True
+    
+def GenerateAnonymousId() -> str:
+    annonymous_id = secrets.token_urlsafe(32)
+    return annonymous_id

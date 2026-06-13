@@ -2,7 +2,9 @@
 
 from pydantic import BaseModel, field_validator
 
+from src.schemas.responses.poll_group import Response_Option
+
 
 class VoteRequest(BaseModel):
-    vote_data: dict[str, list[int]] # poll_id (qr아님, 그리고 투표 리스트)
-
+    vote_qr : str
+    options: list[Response_Option]

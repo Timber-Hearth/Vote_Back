@@ -1,4 +1,4 @@
-from schemas.requests.PollGroup import Request_Create_PollGroup
+from src.schemas.requests.PollGroup import Request_Create_PollGroup
 
 from src.repositories.poll_group_repository import Repo_GetOptionsFromPollId, Repo_GetPollGroupData, Repo_GetPollDataFromPollGroupId
 

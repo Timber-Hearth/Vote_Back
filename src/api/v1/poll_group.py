@@ -1,4 +1,4 @@
-from core.security import GetCurrentUserFromJwt
+from src.core.security import GetCurrentUserFromJwt
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -129,7 +129,6 @@ def Open_PollGroup(token: str, db: Session = Depends(get_db), current_user = Dep
     
 @poll_group_router.post(
     path="/change_delete_time/",
-    request_body=ChangeTimeRequest,
     summary="투표 그룹 삭제 시간 변경",
     description="투표 그룹 삭제 시간 변경",
     response_description="투표 그룹 삭제 시간 변경 결과",
@@ -157,7 +156,6 @@ def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cur
 
 @poll_group_router.post(
     path="/edit_expire_time/",
-    request_body=ChangeTimeRequest,
     summary="투표 그룹 만료 시간 변경",
     description="투표 그룹 만료 시간 변경",
     response_description="투표 그룹 만료 시간 변경 결과",
@@ -184,7 +182,6 @@ def EditExpireTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cu
     
 @poll_group_router.post(
     path="/set_public/{token}/{is_public}",
-    request_body=SetPublicRequest,
     summary="투표 그룹 공개 여부 설정",
     description="투표 그룹 공개 여부 설정",
     response_description="투표 그룹 공개 여부 설정 결과",
