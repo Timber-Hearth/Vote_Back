@@ -1,5 +1,5 @@
 ﻿import os
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 import uuid
 
 from fastapi import Request
@@ -18,6 +18,9 @@ def ServiceSignUp(db: Session, login_id : str, password : str, expire_at: dateti
 
     hash_password = GetPasswordHash(password)
     return CreateUser(db, login_id, hash_password, expire_at)
+
+def SetExpireAtDate(request):
+    return request.expire_at or (datetime.now(UTC) + timedelta(days=7))
 
 def ServiceLogin(db: Session, login_id: str, password: str):
     redis = get_redis()
