@@ -25,3 +25,9 @@ class LoginAttemptLimitExceededError(Exception):
 	def __init__(self):
 		self.status_code = 429
 		self.detail = "Too many login attempts. Please try again later."
+  
+  
+class TooManySignupRequestsError(Exception):
+	def __init__(self):
+		self.status_code = 429
+		self.detail = "Too many signup attempts from this IP. Please try again later."

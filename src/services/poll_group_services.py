@@ -2,8 +2,8 @@ from src.schemas.requests.PollGroup import Request_Create_PollGroup
 
 from src.repositories.poll_group_repository import Repo_GetOptionsFromPollId, Repo_GetPollGroupData, Repo_GetPollDataFromPollGroupId
 
-def BuildPollGroupDataForUser(db, token):
-    group = Repo_GetPollGroupData(db=db, token=token)
+def BuildPollGroupDataForUser(db, token, data = None):
+    group = data if data is not None else Repo_GetPollGroupData(db=db, token=token)
     if group is None:
         raise Exception("no data exist")
     polls = Repo_GetPollDataFromPollGroupId(db, group.id)
