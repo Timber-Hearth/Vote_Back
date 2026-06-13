@@ -7,7 +7,7 @@ MAX_BCRYPT_PASSWORD_BYTES = 72
 class SignUpRequest(BaseModel):
     login_id: str
     password: str
-    expire_at: datetime
+    expire_at: datetime | None = None
 
     @model_validator(mode="before")
     @classmethod

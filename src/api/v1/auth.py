@@ -1,5 +1,5 @@
 ﻿import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -59,7 +59,8 @@ def Login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
 def SignUp(request: SignUpRequest, db: Annotated[Session, Depends(get_db)]):
     """회원가입 요청을 처리하고 성공 메시지를 반환합니다."""
     try:
-        ServiceSignUp(db, request.login_id, request.password, request.expire_at)
+        expire_at = request.expire_at or (datetime.now(UTC) + timedelta(days=7))
+        ServiceSignUp(db, request.login_id, request.password, expire_at)
     except AuthError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

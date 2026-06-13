@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 
 from src.core.database import get_db
 from src.repositories.poll_group_repository import Repo_GetPollGroupData
@@ -13,7 +14,7 @@ vote_router = APIRouter(tags=["vote"])
 
 
 @vote_router.post(
-    "{token}/vote",
+    "/{token}/vote",
     summary="투표하기",
     description="투표하기",
     response_description="투표 결과",

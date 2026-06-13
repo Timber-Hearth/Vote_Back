@@ -2,7 +2,7 @@
 from datetime import datetime
 import uuid
 
-from fastapi import requests
+from fastapi import Request
 from sqlalchemy.orm import Session
 
 from src.core.redis_client import get_redis
@@ -36,7 +36,7 @@ def ServiceLogin(db: Session, login_id: str, password: str):
     raise InvalidCredentialsError()
 
 
-def GetAnonymousId(request: requests) -> str | None:
+def GetAnonymousId(request: Request) -> str | None:
     return request.cookies.get("anonymous_id")
 
 
