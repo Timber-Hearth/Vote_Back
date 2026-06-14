@@ -58,9 +58,6 @@ def Vote(
             )
         
         VoteProcess(db, poll_data, normalized_annonymou_id, request.options)
-        # 이곳에 레디스 붙여라
-        
-        
         return {"message": "투표가 성공적으로 처리되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -54,12 +54,10 @@ def NormalizeAnonymousId(anonymous_id: str | None) -> tuple[uuid.UUID, bool]:
     
     
 def GetClientIp(request: Request) -> str:
-    x_forwarded_for = request.headers.get("x-forwarded-for")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-
-    x_real_ip = request.headers.get("x-real-ip")
-    if x_real_ip:
-        return x_real_ip
+    if os.environ.get("DEBUG_MODE") == "1":
+        return request.client.host
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
 
     return request.client.host

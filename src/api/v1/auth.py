@@ -2,7 +2,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
@@ -57,7 +57,7 @@ def Login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
         429: {"description": "IP당 회원가입 시도 횟수를 초과했습니다. 잠시 후 다시 시도하세요."},
     },
 )
-def SignUp(request: SignUpRequest, db: Annotated[Session, Depends(get_db)]):
+def SignUp(request: Request, body: SignUpRequest, db: Annotated[Session, Depends(get_db)]):
     """회원가입 요청을 처리하고 성공 메시지를 반환합니다."""
     try:
         ip = GetClientIp(request)
@@ -68,8 +68,8 @@ def SignUp(request: SignUpRequest, db: Annotated[Session, Depends(get_db)]):
             redis.expire(redis_key, 60)
         if count > 5:
             raise TooManySignupRequestsError()
-        expire_at = SetExpireAtDate(request)
-        ServiceSignUp(db, request.login_id, request.password, expire_at)
+        expire_at = SetExpireAtDate(body)
+        ServiceSignUp(db, body.login_id, body.password, expire_at)
     except AuthError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

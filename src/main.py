@@ -7,6 +7,7 @@ from src.api.v1.poll_group import poll_group_router
 from src.api.v1.vote import vote_router
 
 app = FastAPI()
+
 app.include_router(router=auth_router, prefix="/auth", tags=["auth"])
 app.include_router(router=poll_group_router, prefix="/poll_group", tags=["poll_group"])
 app.include_router(router=vote_router, prefix="/vote", tags=["vote"])
