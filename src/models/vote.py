@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.database import Base
 
+# TODO : 만약, 투표를 생성한다면 gcp pub/sub에 대기열을 추가해라. 클라우드 펑션으로 하나씩 꺼내서 qr 이미지를 만들고 서버에 저장한다
 
 class Vote(Base):
     __tablename__ = "votes"
