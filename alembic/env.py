@@ -7,6 +7,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.core.database import Base
+from src.models.poll import Poll  # noqa: F401
 from src.models.poll_option import PollOption  # noqa: F401
 from src.models.user import User  # noqa: F401
 from src.models.vote import Vote  # noqa: F401

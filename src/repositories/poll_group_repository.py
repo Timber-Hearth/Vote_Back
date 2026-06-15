@@ -1,11 +1,12 @@
 import secrets
 
+from src.models.poll import Poll
+
 from src.schemas.requests.PollGroup import Request_Create_PollGroup
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.models import PollOption, PollGroup
-from src.models import Poll
 
 def Repo_OwnerCheker(db, user_id, poll_group_id):
     group = db.query(PollGroup).filter(PollGroup.id == poll_group_id).first()
@@ -59,6 +60,7 @@ def Repo_CreatePollGroup(db: Session, owner_id: int, data: Request_Create_PollGr
                     new_option = PollOption(
                          poll_id=new_poll.id,
                          option_text=option.option_text,
+                         poll_group_qr=new_poll_group.qr_token,
                          display_order=counter
                     )
                     db.add(new_option)
