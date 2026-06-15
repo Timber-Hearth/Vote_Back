@@ -20,7 +20,7 @@ def Repo_GetPollGroupByToken(token, db):
     return poll_group
 
 
-def Repo_GetPollGroupData(db: Session, token: str) -> type[PollGroup] | None:
+def Repo_GetPollGroupData(db: Session, token: str) -> PollGroup | None:
      return db.query(PollGroup).where(PollGroup.qr_token == token).first()
 
 def Repo_GetPollDataFromPollGroupId(db: Session, group_id: str):

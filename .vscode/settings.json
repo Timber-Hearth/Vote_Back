@@ -17,7 +17,10 @@
         "src/schemas/requests/__pycache__": true,
         "src/services/__pycache__": true,
         "src/repositories/__pycache__": true,
-        "src/models/__pycache__": true
+        "src/core/__pycache__": true,
+        "src/models/__pycache__": true,
+        "src/schemas/responses/__pycache__": true,
+        "alembic/__pycache__": true
     },
     "hide-files.files": [
         "__pycache__",
@@ -33,6 +36,14 @@
         "src/services/__pycache__",
         "src/repositories/__pycache__",
         "src/core/__pycache__",
-        "src/models/__pycache__"
-    ]
+        "src/models/__pycache__",
+        "src/schemas/responses/__pycache__",
+        "alembic/__pycache__"
+    ],
+    "workbench.colorCustomizations": {
+        "statusBar.background": "#708090",
+        "statusBar.debuggingBackground": "#708090",
+        "statusBar.noFolderBackground": "#708090",
+        "statussBar.prominentBackground": "#708090"
+    }
 }

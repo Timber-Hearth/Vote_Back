@@ -3,6 +3,7 @@ import os
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from fastapi.encoders import jsonable_encoder
 
 from src.core.database import get_db
 from src.core.redis_client import get_redis
@@ -19,7 +20,7 @@ vote_router = APIRouter(tags=["vote"])
 
 
 @vote_router.post(
-    "/{token}/vote",
+    "/{token}",
     summary="투표하기",
     description="투표하기",
     response_description="투표 결과",
@@ -44,7 +45,7 @@ def Vote(
         poll_data = Repo_GetPollGroupData(db=db, token=token)
         if poll_data is None:
             raise HTTPException(status_code=404, detail="투표할 항목이 존재하지 않습니다.")
-        redis.set(redis_key, json.dumps(poll_data), ex=60 * 5)
+        redis.set(redis_key, json.dumps(jsonable_encoder(poll_data)), ex=60 * 5)
     else:
         poll_data = json.loads(cache)
     try:
@@ -56,7 +57,7 @@ def Vote(
                 httponly=True,
                 max_age=60*60*24*365*1,
             )
-        
+
         VoteProcess(db, poll_data, normalized_annonymou_id, request.options)
         return {"message": "투표가 성공적으로 처리되었습니다."}
     except Exception as e:
