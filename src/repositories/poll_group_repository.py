@@ -1,5 +1,6 @@
 import secrets
 
+from src.core.pubsub import PubSub
 from src.models.poll import Poll
 
 from src.schemas.requests.PollGroup import Request_Create_PollGroup
@@ -32,11 +33,12 @@ def Repo_GetOptionsFromPollId(db: Session, id: str):
 
 def Repo_CreatePollGroup(db: Session, owner_id: int, data: Request_Create_PollGroup) -> bool:
      try:
+          qr_token = secrets.token_urlsafe(16)
           new_poll_group = PollGroup(
                owner_id=owner_id,
                title=data.title,
                description=data.description,
-               qr_token=secrets.token_urlsafe(16),
+               qr_token=qr_token,
                created_at=data.created_at,
                delete_after_hours=data.delete_after_hours,
                is_public_result=data.is_public_result,
@@ -67,6 +69,8 @@ def Repo_CreatePollGroup(db: Session, owner_id: int, data: Request_Create_PollGr
                     db.commit()
                     db.refresh(new_option)
                     counter += 1
+          pub_sub = PubSub()
+          pub_sub.PublishManage("create_poll_group", {"qr_token": qr_token})
      except Exception as e:
           db.rollback()
           print(e)
