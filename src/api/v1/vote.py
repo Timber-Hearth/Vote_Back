@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from fastapi.encoders import jsonable_encoder
 
+from redis_key import REDIS_KEY
 from src.core.database import get_db
 from src.core.redis_client import get_redis
 from src.core.redis_client import get_redis
@@ -39,7 +40,7 @@ def Vote(
 ):
     """투표 요청을 처리하고 투표 결과를 반환합니다."""
     redis = get_redis()
-    redis_key = os.environ.get("REDIS_KEY_GET_POLL_GROUP") + token
+    redis_key = REDIS_KEY["get_poll_group"] + token
     cache = redis.get(redis_key)
     if cache is None:
         poll_data = Repo_GetPollGroupData(db=db, token=token)

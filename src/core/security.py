@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone, UTC
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
+from redis_key import REDIS_KEY
 from src.core.redis_client import get_redis
 from src.core.util import IsDebugMode
 from src.core.database import get_db
@@ -101,7 +102,7 @@ def GetCurrentUserFromJwtOptional(
 
 def _BlacklistKeyFromToken(token: str) -> str:
     token_hash = sha256(token.encode("utf-8")).hexdigest()
-    key_prefix = os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST", "token_blacklist:")
+    key_prefix = REDIS_KEY["logout_blacklist"]
     return f"{key_prefix}{token_hash}"
 
 def IsTokenBlacklisted(token: str) -> bool:

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
+from redis_key import REDIS_KEY
 from src.core.redis_client import get_redis
 from src.core.security import ALGORITHM, SECRET_KEY, CreateAccessToken, oauth2_scheme
 from src.core.util import StrConvertToHashForRedis
@@ -62,7 +63,7 @@ def SignUp(request: Request, body: SignUpRequest, db: Annotated[Session, Depends
     try:
         ip = GetClientIp(request)
         redis = get_redis()
-        redis_key = os.environ.get("REDIS_KEY_AUTH_SIGNUP_TRY_IP_LIMIT") + str(ip)
+        redis_key = REDIS_KEY["signup_limit"] + str(ip)
         count = redis.incr(redis_key)
         if count == 1:
             redis.expire(redis_key, 60)
@@ -97,7 +98,7 @@ def Logout(token: Annotated[str, Depends(oauth2_scheme)]):
         if ttl <= 0:
             return {"message" : "success"}
         token_hash = StrConvertToHashForRedis(token)
-        key_prefix = os.environ.get("REDIS_KEY_LOGOUT_BLACKLIST", "token_blacklist:")
+        key_prefix = REDIS_KEY["logout_blacklist"]
         key = f"{key_prefix}{token_hash}"
         redis.setex(key, ttl, "1")
         return {"message" : "success"}

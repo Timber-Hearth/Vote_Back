@@ -1,6 +1,7 @@
 import json
 import os
 
+from redis_key import REDIS_KEY
 from src.core.redis_client import get_redis
 from src.core.security import GetCurrentUserFromJwt
 from fastapi import APIRouter, Depends, HTTPException
@@ -32,14 +33,14 @@ poll_group_router = APIRouter(tags=["poll_group"])
 def Get_PollData(token: str, db: Session = Depends(get_db)):
     try:
         redis = get_redis()
-        cache = redis.get(os.environ.get("REDIS_KEY_GET_POLL_GROUP") + token)
+        cache = redis.get(REDIS_KEY["get_poll_group"] + token)
         if cache is not None:
             return {"data": json.loads(cache), "message": "success"}
         data = Repo_GetPollGroupData(db=db, token=token)
         if data is None:
             raise HTTPException(status_code=404, detail="투표를 찾을 수 없습니다.")
         return_data = BuildPollGroupDataForUser(db, token, data)
-        redis.set(os.environ.get("REDIS_KEY_GET_POLL_GROUP") + token, json.dumps(return_data), ex=60 * 5)
+        redis.set(REDIS_KEY["get_poll_group"] + token, json.dumps(return_data), ex=60 * 5)
         return { "data" : return_data, "message" : "success" }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

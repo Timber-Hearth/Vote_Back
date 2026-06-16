@@ -5,6 +5,7 @@ import uuid
 from fastapi import Request
 from sqlalchemy.orm import Session
 
+from redis_key import REDIS_KEY
 from src.core.redis_client import get_redis
 from src.exceptions.auth import InvalidCredentialsError, UserAlreadyExistsError, LoginAttemptLimitExceededError
 from src.core.security import GetPasswordHash, VerifyPassword
@@ -24,7 +25,7 @@ def SetExpireAtDate(request):
 
 def ServiceLogin(db: Session, login_id: str, password: str):
     redis = get_redis()
-    redis_key = f"{os.environ.get('REDIS_KEY_LOGIN_LIMIT', 'login_limit:')}{login_id}"    
+    redis_key = f"{REDIS_KEY['login_limit']}{login_id}"    
     current_attempts = redis.incr(redis_key)
     if current_attempts == 1:
         redis.expire(redis_key, 30)
