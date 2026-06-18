@@ -41,7 +41,7 @@ def Get_PollData(token: str, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="투표를 찾을 수 없습니다.")
         return_data = BuildPollGroupDataForUser(db, token, data)
         redis.set(REDIS_KEY["get_poll_group"] + token, json.dumps(return_data), ex=60 * 5)
-        return { "data" : return_data, "message" : "success" }
+        return { "data" : return_data, "message" : token}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
