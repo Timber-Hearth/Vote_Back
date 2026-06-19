@@ -1,5 +1,6 @@
 import json
 import os
+from typing import List
 
 from redis_key import REDIS_KEY
 from src.core.redis_client import get_redis
@@ -57,8 +58,8 @@ def Get_PollData(token: str, db: Session = Depends(get_db)):
 )
 def Get_PollGroupTokens(db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        poll_groups = db.query(PollGroup).filter(PollGroup.owner_id == current_user.id).all()
-        tokens = [pg.token for pg in poll_groups]
+        poll_groups: List[PollGroup] = db.query(PollGroup).filter(PollGroup.owner_id == current_user.id).all()
+        tokens = [pg.qr_token for pg in poll_groups]
         return {"tokens": tokens, "message": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
