@@ -21,7 +21,7 @@ poll_group_router = APIRouter(tags=["poll_group"])
 
 # 이건말야, 투표의 루트로 하자고
 @poll_group_router.get(
-    path="/{token}",
+    path="/token/{token}",
     response_model=Response_PollGroup_Token,
     summary="토큰을 통해 공개 가능한 투표 데이터 끌어오기",
     description="qr_token을 집어넣으면 공개 가능한 대상 데이터들을 리턴한다. 미로그인 사용자들이 볼 수 있는 데이터들.",
