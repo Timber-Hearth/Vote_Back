@@ -47,6 +47,26 @@ def Get_PollData(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @poll_group_router.get(
+    path="/all_my_polls",
+    summary="로그인한 유저가 만든 투표의 모든 정보 가져오기",
+    description="로그인한 유저가 만든 투표의 모든 정보 가져오기",
+    response_description="로그인한 유저가 만든 투표의 모든 정보 가져오기",
+    responses={
+        404: {"description": "투표를 찾을 수 없습니다."},
+        500 : {"description": "서버 에러"}
+    }
+)
+def Get_PollGroups(db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+    try:
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+        poll_groups: List[PollGroup] = db.query(PollGroup).filter(PollGroup.owner_id == current_user.id).all()
+        return {"poll_groups": poll_groups, "message": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@poll_group_router.get(
     path="/get_tokens",
     summary="로그인한 유저가 만든 투표들의 토큰들 가져오기",
     description="로그인한 유저가 만든 투표들의 토큰들 가져오기",
@@ -58,6 +78,8 @@ def Get_PollData(token: str, db: Session = Depends(get_db)):
 )
 def Get_PollGroupTokens(db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="인증이 필요합니다.")
         poll_groups: List[PollGroup] = db.query(PollGroup).filter(PollGroup.owner_id == current_user.id).all()
         tokens = [pg.qr_token for pg in poll_groups]
         return {"tokens": tokens, "message": "success"}
