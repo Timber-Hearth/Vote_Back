@@ -8,6 +8,7 @@ class Response_Option(BaseModel):
 
 
 class Response_Poll(BaseModel):
+    id: str
     title: str
     description: str
     allow_multiple_choice: bool
