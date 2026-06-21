@@ -12,7 +12,7 @@ def BuildPollGroupDataForUser(db, token, data = None):
         options = Repo_GetOptionsFromPollId(db, poll.id)
 
         result.append({
-            "id": poll.id,
+            "id": str(poll.id),
             "title": poll.title,
             "description": poll.description,
             "allow_multiple_choice": poll.allow_multiple_choice,
