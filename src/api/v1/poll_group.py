@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 
 from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
-from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheckerByToken, Repo_OwnerCheker, Repo_SetPublic, Repo_EditExpireTime
+from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_GetPollSettingsByToken, Repo_OwnerCheckerByToken, Repo_OwnerCheker, Repo_SetPublic, Repo_EditExpireTime
 from src.core.database import get_db
 
-from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup, SetPublicRequest
+from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup, Request_Token, Request_Token, SetPublicRequest
 from src.schemas.responses.poll_group import Response_PollGroup_Token
 
 poll_group_router = APIRouter(tags=["poll_group"])
@@ -112,7 +112,7 @@ def Create_PollGroup(request: Request_Create_PollGroup, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=str(e))
     
 @poll_group_router.post(
-    path="/close_poll_group/{token}",
+    path="/close_poll_group",
     summary="투표 그룹 닫기",
     description="투표 그룹 닫기",
     response_description="투표 그룹 닫기 결과",
@@ -123,11 +123,11 @@ def Create_PollGroup(request: Request_Create_PollGroup, db: Session = Depends(ge
         500: {"description": "서버 에러"},
     }
 )
-def Close_PollGroup(token: str, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+def Close_PollGroup(request: Request_Token, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        if Repo_OwnerCheckerByToken(db, current_user.id, token) is not True:
+        if Repo_OwnerCheckerByToken(db, current_user.id, request.token) is not True:
             raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
-        poll_group = Repo_GetPollGroupByToken(token, db)
+        poll_group = Repo_GetPollGroupByToken(request.token, db)
         if poll_group is None:
             raise HTTPException(status_code=404, detail="투표 그룹을 찾을 수 없습니다.")
         poll_group.is_closed = True
@@ -137,7 +137,7 @@ def Close_PollGroup(token: str, db: Session = Depends(get_db), current_user = De
         raise HTTPException(status_code=500, detail=str(e))
     
 @poll_group_router.post(
-    path="/open_poll_group/{token}",
+    path="/open_poll_group",
     summary="투표 그룹 열기",
     description="투표 그룹 열기",
     response_description="투표 그룹 열기 결과, 그러니까 is_closed가 false로 바뀌는 결과",
@@ -148,11 +148,11 @@ def Close_PollGroup(token: str, db: Session = Depends(get_db), current_user = De
         500: {"description": "서버 에러"},
     }
 )
-def Open_PollGroup(token: str, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+def Open_PollGroup(request: Request_Token, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        if Repo_OwnerCheckerByToken(db, current_user.id, token) is not True:
+        if Repo_OwnerCheckerByToken(db, current_user.id, request.token) is not True:
             raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
-        poll_group = Repo_GetPollGroupByToken(token, db)
+        poll_group = Repo_GetPollGroupByToken(request.token, db)
         if poll_group is None:
             raise HTTPException(status_code=404, detail="투표 그룹을 찾을 수 없습니다.")
         poll_group.is_closed = False
@@ -160,7 +160,7 @@ def Open_PollGroup(token: str, db: Session = Depends(get_db), current_user = Dep
         return {"message": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @poll_group_router.post(
     path="/change_delete_time/",
     summary="투표 그룹 삭제 시간 변경",
@@ -187,6 +187,28 @@ def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cur
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@poll_group_router.get(
+    path="/get_poll_settings",
+    summary="투표 그룹 설정 가져오기",
+    description="투표 그룹 설정 가져오기",
+    response_description="투표 그룹 설정 가져오기 결과",
+    responses={
+        200: {"description": "투표 그룹 설정이 성공적으로 가져왔습니다."},
+        403: {"description": "권한이 없습니다."},
+        404: {"description": "투표 그룹을 찾을 수 없습니다."},
+        500: {"description": "서버 에러"},
+    }
+)
+def GetPollSettings(request: Request_Token, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
+    try:
+        if Repo_OwnerCheckerByToken(db, current_user.id, request.token) is not True:
+            raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
+        poll_settings = Repo_GetPollSettingsByToken(request.token, db)
+        if poll_settings is None:
+            raise HTTPException(status_code=404, detail="투표 그룹을 찾을 수 없습니다.")
+        return {"poll_settings": poll_settings, "message": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @poll_group_router.post(
     path="/edit_expire_time/",

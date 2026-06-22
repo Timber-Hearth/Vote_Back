@@ -4,11 +4,11 @@ from pydantic import BaseModel, field_validator
 
 class OptionData(BaseModel):
     option_text : str
-    
+
 class ChangeTimeRequest(BaseModel):
     token : str
     add_hours : int
-    
+
 class SetPublicRequest(BaseModel):
     token : str
     is_public : bool
@@ -27,3 +27,6 @@ class Request_Create_PollGroup(BaseModel):
     is_public_result : bool
     expire_at : str
     poll_data_list : list[SinglePollData]
+
+class Request_Token(BaseModel):
+    token : str
