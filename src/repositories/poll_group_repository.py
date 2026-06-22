@@ -26,7 +26,7 @@ def Repo_OwnerCheckerByToken(db, user_id, token):
     return True
 
 def Repo_GetPollGroupByToken(token, db):
-    poll_group = db.query(PollGroup).filter(PollGroup.token == token).first()
+    poll_group = db.query(PollGroup).filter(PollGroup.qr_token == token).first()
     return poll_group
 
 
