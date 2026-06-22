@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from src.services.poll_group_services import BuildPollGroupDataForUser, VerifyPollGroupData
 from src.models import PollGroup
-from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheker, Repo_SetPublic, Repo_EditExpireTime
+from src.repositories.poll_group_repository import Repo_AddDeleteTime, Repo_CreatePollGroup, Repo_GetPollGroupByToken, Repo_GetPollGroupData, Repo_OwnerCheckerByToken, Repo_OwnerCheker, Repo_SetPublic, Repo_EditExpireTime
 from src.core.database import get_db
 
 from src.schemas.requests.PollGroup import ChangeTimeRequest, Request_Create_PollGroup, SetPublicRequest
@@ -125,7 +125,7 @@ def Create_PollGroup(request: Request_Create_PollGroup, db: Session = Depends(ge
 )
 def Close_PollGroup(token: str, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        if Repo_OwnerCheker(db, current_user.id, token) is not True:
+        if Repo_OwnerCheckerByToken(db, current_user.id, token) is not True:
             raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
         poll_group = Repo_GetPollGroupByToken(token, db)
         if poll_group is None:
@@ -150,7 +150,7 @@ def Close_PollGroup(token: str, db: Session = Depends(get_db), current_user = De
 )
 def Open_PollGroup(token: str, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        if Repo_OwnerCheker(db, current_user.id, token) is not True:
+        if Repo_OwnerCheckerByToken(db, current_user.id, token) is not True:
             raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
         poll_group = Repo_GetPollGroupByToken(token, db)
         if poll_group is None:
@@ -175,7 +175,7 @@ def Open_PollGroup(token: str, db: Session = Depends(get_db), current_user = Dep
 )
 def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        if Repo_OwnerCheker(db, current_user.id, request.token) is not True:
+        if Repo_OwnerCheckerByToken(db, current_user.id, request.token) is not True:
             raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
         poll_group = Repo_GetPollGroupByToken(request.token, db)
         if poll_group is None:
@@ -202,7 +202,7 @@ def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cur
 )
 def EditExpireTime(request: ChangeTimeRequest, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
     try:
-        if Repo_OwnerCheker(db, current_user.id, request.token) is not True:
+        if Repo_OwnerCheckerByToken(db, current_user.id, request.token) is not True:
             raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
         poll_group = Repo_GetPollGroupByToken(request.token, db)
         if poll_group is None:
@@ -227,7 +227,7 @@ def EditExpireTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cu
     }
 )
 def SetPublic(request: SetPublicRequest, db: Session = Depends(get_db), current_user = Depends(GetCurrentUserFromJwt)):
-    if Repo_OwnerCheker(db, current_user.id, request.token) is not True:
+    if Repo_OwnerCheckerByToken(db, current_user.id, request.token) is not True:
         raise HTTPException(status_code=401, detail="인증이 필요하거나 권한 부족.")
     poll_group = Repo_GetPollGroupByToken(request.token, db)
     if poll_group is None:
