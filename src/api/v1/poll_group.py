@@ -19,6 +19,8 @@ from src.schemas.responses.poll_group import Response_PollGroup_Token
 poll_group_router = APIRouter(tags=["poll_group"])
 
 
+# TODO : 이곳에 있는 모든 Getter에 레디스를 적용하라.
+
 # 이건말야, 투표의 루트로 하자고
 @poll_group_router.get(
     path="/token/{token}",
