@@ -187,7 +187,7 @@ def AddDeleteTime(request: ChangeTimeRequest, db: Session = Depends(get_db), cur
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@poll_group_router.get(
+@poll_group_router.post(
     path="/get_poll_settings",
     summary="투표 그룹 설정 가져오기",
     description="투표 그룹 설정 가져오기",
