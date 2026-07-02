@@ -38,13 +38,26 @@ def Get_PollData(token: str, db: Session = Depends(get_db)):
         redis = get_redis()
         cache = redis.get(REDIS_KEY["get_poll_group"] + token)
         if cache is not None:
-            return {"data": json.loads(cache), "message": "success"}
+            cached_data = json.loads(cache)
+            return {
+                "message": "success",
+                "title": cached_data["title"],
+                "description": cached_data["description"],
+                "polls": cached_data["polls"],
+            }
         data = Repo_GetPollGroupData(db=db, token=token)
         if data is None:
             raise HTTPException(status_code=404, detail="투표를 찾을 수 없습니다.")
         return_data = BuildPollGroupDataForUser(db, token, data)
         redis.set(REDIS_KEY["get_poll_group"] + token, json.dumps(return_data), ex=60 * 5)
-        return { "data" : return_data, "message" : token}
+        return {
+            "message": "success",
+            "title": return_data["title"],
+            "description": return_data["description"],
+            "polls": return_data["polls"],
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -7,11 +7,15 @@ def BuildPollGroupDataForUser(db, token, data = None):
     if group is None:
         raise Exception("no data exist")
     polls = Repo_GetPollDataFromPollGroupId(db, group.id)
-    result = []
+    title = group.title
+    description = group.description
+    result = {}
+    result["title"] = title
+    result["description"] = description
+    result["polls"] = []
     for poll in polls:
         options = Repo_GetOptionsFromPollId(db, poll.id)
-
-        result.append({
+        result["polls"].append({
             "id": str(poll.id),
             "title": poll.title,
             "description": poll.description,

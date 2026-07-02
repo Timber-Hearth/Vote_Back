@@ -17,4 +17,6 @@ class Response_Poll(BaseModel):
 
 class Response_PollGroup_Token(BaseModel):
     message: str
-    data: list[Response_Poll]
+    title: str
+    description: str
+    polls: list[Response_Poll]
