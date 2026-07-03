@@ -3,6 +3,7 @@ from datetime import datetime
 
 
 class Response_Option(BaseModel):
+    option_id: int
     option_text: str
     display_order: int
 
