@@ -44,6 +44,9 @@ def Repo_GetPollSettingsByToken(token, db):
 def Repo_GetPollGroupData(db: Session, token: str) -> PollGroup | None:
      return db.query(PollGroup).filter(PollGroup.qr_token == token).first()
 
+def Repo_GetPollOptionData(db: Session, token: str) -> list[PollOption] | None:
+     return db.query(PollOption).filter(PollOption.poll_group_qr == token).all()
+
 def Repo_GetPollDataFromPollGroupId(db: Session, group_id: str):
      return db.query(Poll).where(Poll.group_id == group_id).all()
 

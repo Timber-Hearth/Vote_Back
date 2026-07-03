@@ -22,6 +22,7 @@ def BuildPollGroupDataForUser(db, token, data = None):
             "allow_multiple_choice": poll.allow_multiple_choice,
             "options": [
                 {
+                    "option_id": opt.id,
                     "option_text": opt.option_text,
                     "display_order": opt.display_order
                 }
