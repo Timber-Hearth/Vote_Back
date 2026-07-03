@@ -9,7 +9,7 @@ from redis_key import REDIS_KEY
 from src.core.database import get_db
 from src.core.redis_client import get_redis
 from src.core.redis_client import get_redis
-from src.repositories.poll_group_repository import Repo_GetPollGroupData
+from src.repositories.poll_group_repository import Repo_GetPollGroupData, Repo_GetPollOptionData
 from src.schemas.requests.vote import VoteRequest
 from src.services.auth_service import GetAnonymousId, NormalizeAnonymousId
 from typing import Annotated
@@ -21,7 +21,7 @@ vote_router = APIRouter(tags=["vote"])
 
 
 @vote_router.post(
-    "/{token}",
+    "/vote",
     summary="투표하기",
     description="투표하기",
     response_description="투표 결과",
@@ -32,7 +32,6 @@ vote_router = APIRouter(tags=["vote"])
     },
 )
 def Vote(
-    token: str,
     request: VoteRequest,
     response: Response,
     annonymous_id: Annotated[str, Depends(GetAnonymousId)],
@@ -40,10 +39,17 @@ def Vote(
 ):
     """투표 요청을 처리하고 투표 결과를 반환합니다."""
     redis = get_redis()
-    redis_key = REDIS_KEY["get_poll_group"] + token
+    redis_key = REDIS_KEY["get_poll_group"] + request.vote_qr
+
+    for single_id in request.options_id:
+        full_option_data = Repo_GetPollOptionData(db=db, token=request.vote_qr)
+        if full_option_data is None:
+            raise HTTPException(status_code=404, detail="투표할 항목이 존재하지 않습니다.")
+        if full_option_data.poll_group_qr != request.vote_qr:
+            raise HTTPException(status_code=404, detail="투표할 항목이 존재하지 않습니다.")
     cache = redis.get(redis_key)
     if cache is None:
-        poll_data = Repo_GetPollGroupData(db=db, token=token)
+        poll_data = Repo_GetPollGroupData(db=db, token=request.vote_qr)
         if poll_data is None:
             raise HTTPException(status_code=404, detail="투표할 항목이 존재하지 않습니다.")
         redis.set(redis_key, json.dumps(jsonable_encoder(poll_data)), ex=60 * 5)
@@ -59,7 +65,7 @@ def Vote(
                 max_age=60*60*24*365*1,
             )
 
-        VoteProcess(db, poll_data, normalized_annonymou_id, request.options)
+        VoteProcess(db, request.vote_qr, poll_data, normalized_annonymou_id, request.options_id)
         return {"message": "투표가 성공적으로 처리되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
