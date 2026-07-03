@@ -53,7 +53,7 @@ def Vote(
         if poll_data is None:
             raise HTTPException(status_code=404, detail="투표할 항목이 존재하지 않습니다.")
         redis.set(redis_key, json.dumps(jsonable_encoder(poll_data)), ex=60 * 5)
-    else:
+    else: 
         poll_data = json.loads(cache)
     try:
         normalized_annonymou_id, new_cookie = NormalizeAnonymousId(annonymous_id)
@@ -65,7 +65,7 @@ def Vote(
                 max_age=60*60*24*365*1,
             )
 
-        VoteProcess(db, request.vote_qr, poll_data, normalized_annonymou_id, request.options_id)
+        VoteProcess(db, request.vote_qr, normalized_annonymou_id, request.options_id)
         return {"message": "투표가 성공적으로 처리되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
