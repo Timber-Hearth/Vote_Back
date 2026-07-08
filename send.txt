@@ -1,0 +1,71 @@
+﻿ggwp@BHWui-MacBookAir vote_back %  source /Users/ggwp/MY/Vote/vote_back/.venv/bin/activate
+(.venv) ggwp@BHWui-MacBookAir vote_back %  cd /Users/ggwp/MY/Vote/vote_back ; /usr/bin/env /Users/ggwp/MY/Vote/vote_b
+ack/.venv/bin/python /Users/ggwp/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy/adap
+ter/../../debugpy/launcher 64418 -- -m uvicorn src.main:app --host 127.0.0.1 --port 8000 
+INFO:     Started server process [81756]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64641 - "GET /poll_group/token/G4oF4Wmb3w-kMy-LCpY2Yg HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<11 lines>...
+    )
+    ^
+  File "/Users/ggwp/MY/Vote/vote_back/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+    ...<3 lines>...
+    )
+fastapi.exceptions.ResponseValidationError: 3 validation errors:
+  {'type': 'missing', 'loc': ('response', 'title'), 'msg': 'Field required', 'input': {'data': {'title': '게임 선호도 조사', 'description': '게임 관련 설문', 'polls': [{'id': 'f55b745d-1921-4c9c-a271-dcbd2155ae94', 'title': '좋아하는 FPS', 'description': '하나 선택', 'allow_multiple_choice': False, 'options': [{'option_text': '배틀필드', 'display_order': 0}, {'option_text': '타르코프', 'display_order': 1}, {'option_text': '발로란트', 'display_order': 2}]}, {'id': '51eb0b4d-18aa-435f-83ad-4ef3be01c5d0', 'title': '좋아하는 RPG', 'description': '여러 개 선택 가능', 'allow_multiple_choice': True, 'options': [{'option_text': '엘든 링', 'display_order': 0}, {'option_text': '위쳐3', 'display_order': 1}]}]}, 'message': 'G4oF4Wmb3w-kMy-LCpY2Yg'}}
+  {'type': 'missing', 'loc': ('response', 'description'), 'msg': 'Field required', 'input': {'data': {'title': '게임 선호도 조사', 'description': '게임 관련 설문', 'polls': [{'id': 'f55b745d-1921-4c9c-a271-dcbd2155ae94', 'title': '좋아하는 FPS', 'description': '하나 선택', 'allow_multiple_choice': False, 'options': [{'option_text': '배틀필드', 'display_order': 0}, {'option_text': '타르코프', 'display_order': 1}, {'option_text': '발로란트', 'display_order': 2}]}, {'id': '51eb0b4d-18aa-435f-83ad-4ef3be01c5d0', 'title': '좋아하는 RPG', 'description': '여러 개 선택 가능', 'allow_multiple_choice': True, 'options': [{'option_text': '엘든 링', 'display_order': 0}, {'option_text': '위쳐3', 'display_order': 1}]}]}, 'message': 'G4oF4Wmb3w-kMy-LCpY2Yg'}}
+  {'type': 'missing', 'loc': ('response', 'polls'), 'msg': 'Field required', 'input': {'data': {'title': '게임 선호도 조사', 'description': '게임 관련 설문', 'polls': [{'id': 'f55b745d-1921-4c9c-a271-dcbd2155ae94', 'title': '좋아하는 FPS', 'description': '하나 선택', 'allow_multiple_choice': False, 'options': [{'option_text': '배틀필드', 'display_order': 0}, {'option_text': '타르코프', 'display_order': 1}, {'option_text': '발로란트', 'display_order': 2}]}, {'id': '51eb0b4d-18aa-435f-83ad-4ef3be01c5d0', 'title': '좋아하는 RPG', 'description': '여러 개 선택 가능', 'allow_multiple_choice': True, 'options': [{'option_text': '엘든 링', 'display_order': 0}, {'option_text': '위쳐3', 'display_order': 1}]}]}, 'message': 'G4oF4Wmb3w-kMy-LCpY2Yg'}}
+
+  File "/Users/ggwp/MY/Vote/vote_back/src/api/v1/poll_group.py", line 25, in Get_PollData
+    GET /poll_group/token/{token}

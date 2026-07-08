@@ -7,4 +7,4 @@ from src.schemas.responses.poll_group import Response_Option
 
 class VoteRequest(BaseModel):
     vote_qr : str
-    options_id: list[int]
+    options : dict[str, list[int]]

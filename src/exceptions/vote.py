@@ -16,6 +16,11 @@ class VotePollNotFoundError(VoteError):
 	detail = "Poll not found"
 
 
+class VoteInvalidPollIdError(VoteError):
+	status_code = status.HTTP_400_BAD_REQUEST
+	detail = "invalid poll id"
+
+
 class VoteExpiredError(VoteError):
 	status_code = status.HTTP_410_GONE
 	detail = "poll expired"
