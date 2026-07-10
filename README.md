@@ -1,537 +1,601 @@
-﻿# SecretVote Backend
+# SecretVote Backend
 
-## 1) 프로젝트 풀이
+익명성과 운영성을 동시에 잡는 투표 백엔드입니다. 단순히 투표를 저장하는 API가 아니라, 인증된 생성자와 익명 참여자를 분리하고, Redis 기반 제한과 캐시, JWT 블랙리스트, Alembic 마이그레이션, Docker 기반 실행 환경, 그리고 GitHub 푸시를 기점으로 GCP가 자동 배포를 수행하는 이벤트 기반 운영 파이프라인까지 포함한 FastAPI 프로젝트입니다.
 
-이 저장소는 **익명 투표 백엔드 API**를 만드는 FastAPI 기반 프로젝트입니다.
-현재 코드 기준으로 핵심 구현 범위는 아래와 같습니다.
+포트폴리오 관점에서 이 프로젝트의 핵심은 세 가지입니다.
 
-- 사용자 인증: 회원가입/로그인 + JWT 발급
-- 투표 생성: 제목/설명/옵션/삭제 시간 설정
-- QR 토큰 발급: 투표 생성 시 접근 토큰 생성
-- 투표 조회: 토큰으로 투표 조회
-- DB 마이그레이션: Alembic으로 스키마 관리
-- 기본 테스트: 인증/모델/투표 생성 로직 테스트
+- 익명 투표라는 도메인을 백엔드 중심으로 설계했다는 점
+- 로컬 개발부터 컨테이너 실행, 스키마 버전 관리, 테스트까지 운영 흐름을 고려했다는 점
+- FastAPI CRUD 수준을 넘어서 인증, 무결성, 캐시, 비동기 이벤트 처리, 자동 배포까지 함께 다뤘다는 점
 
-### 현재 주요 엔드포인트
+## 프로젝트 개요
+
+이 백엔드는 이런 원칙으로 설계되었습니다.
+
+- 투표 생성자는 로그인한 사용자여야 한다.
+- 투표 참여자는 회원가입 없이도 익명으로 참여할 수 있어야 한다.
+- 동일 사용자의 중복 투표를 최소한의 식별 정보로 제어해야 한다.
+- 투표 링크와 QR 기반 접근이 가능해야 한다.
+- 결과적으로 서비스는 가볍게 시작할 수 있어야 하지만, 운영 환경으로 확장 가능한 구조여야 한다.
+
+이를 위해 서버는 다음 방식으로 동작합니다.
+
+- 생성자는 JWT 인증을 통해 투표 그룹을 만든다.
+- 참여자는 QR 토큰 또는 토큰 URL로 투표 데이터를 조회한다.
+- 참여자의 브라우저에는 익명 식별용 쿠키를 부여한다.
+- 투표 데이터와 일부 공개 조회는 Redis 캐시를 사용한다.
+- 로그아웃된 토큰은 Redis 블랙리스트에 올려 즉시 무효화한다.
+- 데이터베이스 스키마는 Alembic으로 버전 관리한다.
+- GitHub에 코드를 푸시하면 GCP가 이벤트를 감지해 자동 빌드 후 Cloud Run에 배포한다.
+- 투표 생성 이벤트는 Pub/Sub로 발행되고, Cloud Function이 QR 이미지를 생성한 뒤 Cloud Storage에 저장한다.
+
+## 왜 이 백엔드가 강한가
+
+### 1. 익명성과 제어를 동시에 잡은 투표 설계
+
+이 프로젝트는 완전 무상태 public write API가 아닙니다. 투표 생성 권한은 인증 사용자에게 제한하고, 투표 참여는 익명으로 열어두되 익명 UUID 쿠키를 사용해 중복 투표를 통제합니다. 즉, 관리 권한과 참여 권한을 분리한 구조입니다.
+
+### 2. 서비스 운영에서 필요한 방어 장치가 이미 들어가 있음
+
+- 로그인 시도 횟수 제한
+- 회원가입 IP 기준 요청 제한
+- 로그아웃 토큰 블랙리스트 처리
+- bcrypt 길이 제한 검증
+- DB 레벨 unique constraint를 통한 중복 투표 방지
+
+### 3. 실행 환경을 재현 가능한 형태로 정리함
+
+- Dockerfile 기반 앱 이미지 빌드
+- PostgreSQL, Redis, App을 함께 띄우는 Docker Compose
+- healthcheck 기반 의존 서비스 기동 순서 제어
+- Alembic 기반 스키마 관리
+- pytest 기반 회귀 테스트
+- GitHub push 기반 GCP 자동 빌드 및 Cloud Run 배포
+- Pub/Sub와 Cloud Function을 이용한 비동기 QR 이미지 생성 파이프라인
+
+즉, "내 로컬에서만 되던 프로젝트"가 아니라 반복 가능한 환경에서 재실행 가능한 백엔드입니다.
+
+## 핵심 기능
+
+### 인증
+
+- 회원가입
+- 로그인
+- JWT 발급
+- 로그아웃 시 토큰 블랙리스트 등록
+
+### 투표 생성 및 관리
+
+- 로그인 사용자만 투표 그룹 생성 가능
+- 다중 질문을 하나의 투표 그룹으로 구성 가능
+- 질문별 복수 선택 허용 여부 설정 가능
+- 투표 공개 여부, 종료 여부, 만료 시간, 삭제 시간 제어
+
+### 익명 투표
+
+- 비회원 참여 가능
+- 익명 식별용 쿠키 자동 발급 및 정규화
+- 동일 익명 사용자의 동일 항목 중복 투표 방지
+- 잘못된 익명 쿠키가 들어와도 새 UUID를 발급해 복구
+
+### 조회 및 클라우드 운영 기능
+
+- QR 토큰 기반 투표 조회
+- Redis 캐시 기반 공개 투표 조회 최적화
+- GCS에 저장된 QR 이미지 조회 엔드포인트
+- 투표 그룹 생성 시 Google Cloud Pub/Sub로 QR 생성 이벤트 발행
+- Cloud Function이 이벤트를 소비해 QR 이미지를 생성하고 Cloud Storage에 저장
+- GitHub push 이벤트를 시작점으로 GCP가 자동 빌드 후 Cloud Run에 배포
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    GH[GitHub Repository] --> TR[GCP Build Trigger]
+    TR --> CB[Cloud Build]
+    CB --> CR[Cloud Run]
+    A[Client / Browser] --> B[FastAPI]
+    B --> CR
+    B --> C[Auth Router]
+    B --> D[Poll Group Router]
+    B --> E[Vote Router]
+    B --> F[QR Router]
+    C --> G[JWT / Password Hashing]
+    D --> H[Service Layer]
+    E --> H
+    H --> I[Repository Layer]
+    I --> J[(PostgreSQL)]
+    C --> K[(Redis)]
+    D --> K
+    E --> K
+    D --> L[Google Pub/Sub]
+    L --> CF[Cloud Function]
+    CF --> M[Google Cloud Storage]
+    F --> M[Google Cloud Storage]
+```
+
+### 계층 분리 방식
+
+- `src/api/v1/`: HTTP 엔드포인트, 요청/응답 정의, 상태코드 처리
+- `src/services/`: 도메인 규칙과 비즈니스 로직
+- `src/repositories/`: 데이터 접근과 영속성 처리
+- `src/models/`: SQLAlchemy ORM 모델
+- `src/schemas/`: Pydantic 요청/응답 스키마
+- `src/core/`: DB, Redis, 보안, 공통 유틸리티
+- `tests/`: 인증, 모델, 투표 시나리오 회귀 테스트
+
+이 구조는 FastAPI 단일 파일 앱과 달리 책임을 분산시켜 변경 지점을 분명하게 만들고, 테스트와 유지보수를 쉽게 합니다.
+
+## 도메인 모델
+
+### User
+
+- 로그인 식별자 `login_id`
+- 해시된 비밀번호 `password_hash`
+
+### PollGroup
+
+투표 묶음의 최상위 엔티티입니다.
+
+- 생성자 소유권 `owner_id`
+- 외부 공유 토큰 `qr_token`
+- 공개 결과 여부 `is_public_result`
+- 종료 여부 `is_closed`
+- 만료 시각 `expire_at`
+- 자동 정리 기준 `delete_after_hours`
+
+### Poll
+
+PollGroup 안에 포함되는 개별 질문입니다.
+
+- 질문 제목, 설명
+- 복수 선택 허용 여부 `allow_multiple_choice`
+
+### PollOption
+
+질문별 선택지입니다.
+
+- `poll_id` 기준 소속
+- `display_order` 기준 정렬
+- QR 토큰과 연결되는 `poll_group_qr`
+
+### Vote
+
+실제 투표 기록입니다.
+
+- `poll_id`
+- `option_id`
+- `anonymous_id`
+- `created_at`
+
+DB 레벨에서는 `poll_id + anonymous_id + option_id` 조합에 unique constraint를 두어 동일 익명 사용자가 동일 선택지에 중복 투표하지 못하도록 막습니다.
+
+## 요청 흐름
+
+### 1. 회원가입 / 로그인 흐름
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant API as FastAPI
+    participant R as Redis
+    participant DB as PostgreSQL
+
+    U->>API: POST /auth/signup
+    API->>R: IP 기준 가입 횟수 증가
+    API->>DB: 사용자 중복 확인
+    API->>DB: bcrypt 해시 저장
+    API-->>U: success
+
+    U->>API: POST /auth/login
+    API->>R: login_id 기준 로그인 시도 횟수 증가
+    API->>DB: 사용자 조회
+    API->>API: 비밀번호 검증
+    API->>R: 성공 시 로그인 제한 키 삭제
+    API-->>U: JWT access token 발급
+```
+
+### 2. 투표 생성 흐름
+
+```mermaid
+sequenceDiagram
+    participant Owner as Authenticated Owner
+    participant API as FastAPI
+    participant S as Service/Repo
+    participant DB as PostgreSQL
+    participant PS as Pub/Sub
+
+    Owner->>API: POST /poll_group/create_poll_group
+    API->>API: JWT 인증
+    API->>S: 요청 데이터 검증
+    S->>DB: PollGroup 생성
+    S->>DB: Poll 생성
+    S->>DB: PollOption 생성
+    S->>PS: QR 생성용 이벤트 발행
+    PS->>CF: 이벤트 전달
+    CF->>GCS: QR PNG 저장
+    API-->>Owner: success
+```
+
+### 3. 프로덕션 배포 흐름
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant GH as GitHub
+    participant GCP as GCP Trigger
+    participant CB as Cloud Build
+    participant CR as Cloud Run
+
+    Dev->>GH: git push
+    GH->>GCP: 저장소 이벤트 전달
+    GCP->>CB: 빌드 시작
+    CB->>CB: 컨테이너 이미지 빌드
+    CB->>CR: 새 리비전 배포
+    CR-->>Dev: 최신 백엔드 반영 완료
+```
+
+### 4. 익명 투표 흐름
+
+```mermaid
+sequenceDiagram
+    participant V as Anonymous Voter
+    participant API as FastAPI
+    participant R as Redis
+    participant DB as PostgreSQL
+
+    V->>API: GET /poll_group/token/{token}
+    API->>R: 캐시 조회
+    alt cache hit
+        R-->>API: poll data
+    else cache miss
+        API->>DB: PollGroup/Poll/Option 조회
+        API->>R: 5분 캐시 저장
+    end
+    API-->>V: 투표 정보 반환
+
+    V->>API: POST /vote/vote
+    API->>API: anonymous_id 쿠키 확인 및 정규화
+    API->>DB: 옵션 유효성 검증
+    API->>DB: 투표 저장
+    API-->>V: success + 필요 시 새 anonymous_id 쿠키 설정
+```
+
+## 기술 스택
+
+### Backend
+
+- Python 3.13
+- FastAPI
+- Uvicorn
+- Pydantic v2
+
+### Data Layer
+
+- PostgreSQL
+- SQLAlchemy 2.x
+- Alembic
+- Psycopg 3
+
+### Caching / Session-like Controls
+
+- Redis
+- 로그인 제한
+- 회원가입 제한
+- 로그아웃 토큰 블랙리스트
+- 공개 투표 데이터 캐시
+
+### Security
+
+- JWT (`python-jose`)
+- bcrypt (`passlib`, `bcrypt`)
+- OAuth2 Bearer Token
+
+### Infra / Runtime
+
+- Docker
+- Docker Compose
+- Healthcheck 기반 의존 서비스 기동 제어
+- `.env` 기반 설정 로딩
+- Cloud Run
+- GCP 빌드 트리거 기반 자동 배포
+
+### Cloud Extension Points
+
+- Google Cloud Pub/Sub
+- Google Cloud Functions
+- Google Cloud Storage
+- Cloud Build
+- Cloud Run
+- Cloud SQL Auth Proxy 기반 연결 시나리오 문서화
+
+### Testing
+
+- pytest
+- FastAPI TestClient
+- SQLite 기반 테스트 DB fixture
+- Fake Redis 주입 방식의 단위/통합 혼합 테스트
+
+## API 요약
+
+현재 코드 기준 주요 엔드포인트는 아래와 같습니다.
+
+### Auth
 
 - `POST /auth/signup`
 - `POST /auth/login`
-- `POST /polls/create`
-- `GET /polls/{token}`
+- `POST /auth/logout`
 
-### 코드 구조 요약
+### Poll Group
 
-- `src/main.py`: FastAPI 앱 생성, 라우터 등록
-- `src/api/v1/`: 엔드포인트
-- `src/services/`: 비즈니스 로직
-- `src/models/`: SQLAlchemy 모델
-- `src/schemas/`: Pydantic 요청/응답 스키마
-- `src/core/`: DB/JWT 보안 공통 설정
-- `alembic/`: 마이그레이션
-- `tests/`: pytest 테스트
+- `GET /poll_group/token/{token}`
+- `GET /poll_group/all_my_polls`
+- `GET /poll_group/get_tokens`
+- `POST /poll_group/create_poll_group`
+- `POST /poll_group/close_poll_group`
+- `POST /poll_group/open_poll_group`
+- `POST /poll_group/change_delete_time/`
+- `POST /poll_group/get_poll_settings`
+- `POST /poll_group/edit_expire_time/`
+- `POST /poll_group/set_public`
 
----
+### Vote
 
-## 2) 완전히 포맷한 컴퓨터에서 작업 환경 재구축 (Windows, IDE 설치 완료 가정)
+- `POST /vote/vote`
 
-아래 순서를 그대로 따르면 됩니다.
+### QR / Internal Ops
 
-### 2-1. 사전 설치
+- `GET /qr/{token}`
+- `POST /migration/internal/migrate`
 
-1. **Git**
-2. **Python 3.13.x** (현재 프로젝트 테스트/캐시 기준 3.13 사용 흔적)
-3. **PostgreSQL 17** (현재 `local_db_start.bat` 서비스명 `postgresql-x64-17` 기준)
+## 데이터 무결성과 운영 포인트
 
-버전 확인:
+이 프로젝트에서 신경 쓴 부분은 단순 기능보다도 "서비스가 망가지지 않게 만드는 장치"입니다.
 
-```powershell
-python --version
-git --version
-psql --version
+### 1. 비밀번호 안전성
+
+- bcrypt의 바이트 제한을 요청 스키마와 해시 함수 양쪽에서 검증
+- 잘못된 길이의 비밀번호가 들어와도 조기 차단
+
+### 2. 인증 공격 완화
+
+- 로그인 실패 횟수를 Redis로 제한
+- 회원가입 요청도 IP 단위로 제한
+
+### 3. 토큰 무효화 전략
+
+- 로그아웃 시 JWT 자체를 Redis 블랙리스트에 저장
+- 만료 시각까지만 유지해 불필요한 저장을 줄임
+
+### 4. 익명 투표의 현실적인 중복 방지
+
+- 브라우저 쿠키 기반 anonymous UUID 관리
+- 잘못된 쿠키는 새 UUID로 재발급
+- DB unique constraint로 동일 옵션 재투표 방지
+
+### 5. 읽기 부하 완화
+
+- 공개 투표 조회는 Redis 캐시 우선
+- 토큰 기반 투표 페이지 조회 시 DB hit를 줄일 수 있는 구조
+
+## 실행 파이프라인
+
+이 프로젝트는 이미 이벤트 기반 배포 파이프라인으로 운영되고 있습니다. 개발자가 GitHub에 코드를 push하면 GCP가 저장소 이벤트를 감지하고, 자동으로 빌드를 수행한 뒤 Cloud Run에 새 리비전을 배포합니다. 즉, 코드 변경부터 서비스 반영까지가 수동 배포가 아니라 클라우드 이벤트에 의해 이어지는 구조입니다.
+
+### 프로덕션 CI/CD 파이프라인
+
+```mermaid
+flowchart LR
+    A[Developer Push] --> B[GitHub Event]
+    B --> C[GCP Trigger]
+    C --> D[Cloud Build]
+    D --> E[Container Image Build]
+    E --> F[Cloud Run Deploy]
+    F --> G[Serving New Revision]
 ```
 
-### 2-2. 프로젝트 받기
+### 프로덕션에서 실제로 강조할 수 있는 포인트
 
-```powershell
-git clone <your-repository-url> E:\SecretVote\backend
-Set-Location E:\SecretVote\backend
+1. 소스코드 변경이 GitHub 이벤트로 시작된다.
+2. GCP가 저장소 이벤트를 감지해 빌드 프로세스를 자동으로 시작한다.
+3. 백엔드는 컨테이너 이미지로 패키징된다.
+4. 새 이미지가 Cloud Run에 배포되며 revision 단위로 롤아웃된다.
+5. 결과적으로 배포는 사람의 수동 서버 접속이 아니라 관리형 런타임 전환으로 처리된다.
+
+### 백엔드가 제공하는 운영 단위
+
+1. 의존성 설치
+2. `.env` 로딩
+3. PostgreSQL 연결
+4. Redis 연결
+5. Alembic 마이그레이션 적용
+6. pytest 회귀 테스트 실행
+7. Docker 이미지 빌드
+8. 앱 컨테이너 실행
+
+### QR 생성 비동기 파이프라인
+
+```mermaid
+flowchart LR
+    A[PollGroup Created] --> B[Publish Pub/Sub Event]
+    B --> C[Cloud Function Triggered]
+    C --> D[Generate QR Image]
+    D --> E[Store PNG in Cloud Storage]
+    E --> F[Expose QR Public URL]
 ```
 
-### 2-3. 가상환경 생성/활성화
+QR 이미지는 저장 이후 `GET /qr/{token}` 엔드포인트를 통해 조회되며, 응답에는 GCS public URL이 포함됩니다.
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+이 구조를 택한 이유는 명확합니다. 투표 생성 요청의 응답 시간을 QR 이미지 생성 작업과 분리해 API latency를 낮추고, 이미지 생성/저장을 별도 이벤트 소비자로 분리해 후처리를 독립적으로 확장하기 위해서입니다.
+
+### 이 프로젝트에 맞는 운영 체크포인트
+
+- lint 또는 static check 추가 가능
+- pytest로 인증/투표 회귀 검증
+- Docker build로 런타임 재현성 검증
+- 배포 시점 Cloud Run revision 전환 여부 확인
+- Pub/Sub 이벤트 발행 후 QR 이미지가 Cloud Storage에 적재되는지 확인
+- 배포 후 `/docs` 또는 루트 엔드포인트 기반 스모크 테스트 수행
+
+### 로컬/개발 실행 파이프라인
+
+```mermaid
+flowchart LR
+    A[Developer] --> B[.env 준비]
+    B --> C[PostgreSQL / Redis 기동]
+    C --> D[alembic upgrade head]
+    D --> E[pytest]
+    E --> F[uvicorn src.main:app]
 ```
 
-### 2-4. 의존성 설치
+### 컨테이너 실행 파이프라인
 
-```powershell
-python -m pip install -r req.txt
-```
+`docker-compose.yml` 기준으로는 다음 순서로 시스템이 올라갑니다.
 
-참고:
+1. PostgreSQL 컨테이너 기동
+2. Redis 컨테이너 기동
+3. healthcheck 통과 확인
+4. FastAPI 앱 컨테이너 시작
 
-- 현재 `req.txt`는 UTF-16 LE BOM 형식이지만, 현재 환경에서는 `pip install -r req.txt`가 정상 동작 확인됨.
+이 흐름은 의존 서비스 준비 전 앱이 먼저 떠서 실패하는 문제를 줄이는 실용적인 구성입니다.
 
-### 2-5. 환경변수 파일 준비 (`.env`)
+## 로컬 실행 방법
 
-프로젝트 루트(`E:\SecretVote\backend`)에 `.env` 생성:
-
-```dotenv
-DATABASE_URL=postgresql+psycopg://ggwp:<DB_PASSWORD>@localhost:5432/vote_db
-SECRET_KEY=<YOUR_SECRET_KEY>
-```
-
-`SECRET_KEY` 생성 예시:
-
-```powershell
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-### 2-6. PostgreSQL DB 준비
-
-기본 접속 후 DB 생성:
-
-```powershell
-psql -U ggwp
-```
-
-```sql
-CREATE DATABASE vote_db;
-\c vote_db
-```
-
-필요하면 서비스 재시작:
-
-```powershell
-.\local_db_start.bat
-```
-
-### 2-7. 마이그레이션 반영
-
-```powershell
-alembic upgrade head
-```
-
-### 2-8. `PYTHONPATH` 설정 (중요)
-
-이 코드베이스는 import 경로 특성상 `PYTHONPATH`에 `src`가 있어야 안정적으로 동작합니다.
-
-현재 세션만 설정:
-
-```powershell
-$env:PYTHONPATH="E:\SecretVote\backend\src"
-```
-
-영구 설정(새 터미널부터 반영):
-
-```powershell
-setx PYTHONPATH "E:\SecretVote\backend\src"
-```
-
-### 2-9. 서버 실행
-
-```powershell
-Set-Location E:\SecretVote\backend
-$env:PYTHONPATH="E:\SecretVote\backend\src"
-uvicorn src.main:app --reload
-```
-
-문서 확인:
-
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
-
-### 2-10. 테스트 실행
-
-```powershell
-Set-Location E:\SecretVote\backend
-$env:PYTHONPATH="E:\SecretVote\backend\src"
-python -m pytest -q
-```
-
-현재 기준 검증 결과: `14 passed`.
-
-### 2-11. macOS 기준 재구축 (Apple Silicon/Intel)
-
-아래는 macOS에서 같은 개발환경을 맞추는 절차입니다.
-
-#### A) 사전 설치
-
-1. **Homebrew**
-2. **Python 3.13.x**
-3. **PostgreSQL 17**
-4. (선택) **Git**
-
-버전 확인:
+### 1. 가상환경 생성
 
 ```bash
-python3 --version
-git --version
-psql --version
-```
-
-Homebrew가 없다면:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-설치 예시:
-
-```bash
-brew install python@3.13
-brew install postgresql@17
-brew services start postgresql@17
-```
-
-#### B) 프로젝트/가상환경
-
-```bash
-git clone <your-repository-url> ~/SecretVote/backend
-cd ~/SecretVote/backend
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+### 2. 의존성 설치
+
+`req.txt`는 UTF-16 인코딩이므로 일반 설치 명령을 그대로 사용하면 됩니다.
+
+```bash
 python -m pip install --upgrade pip
 python -m pip install -r req.txt
 ```
 
-#### C) 환경변수 파일
+### 3. 환경 변수 준비
 
-프로젝트 루트(`~/SecretVote/backend`)에 `.env` 생성:
+프로젝트 루트에 `.env` 파일을 준비합니다.
 
 ```dotenv
-DATABASE_URL=postgresql+psycopg://ggwp:<DB_PASSWORD>@localhost:5432/vote_db
-SECRET_KEY=<YOUR_SECRET_KEY>
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/vote_db
+SECRET_KEY=replace-this-with-a-long-random-secret
+REDIS_URL=redis://localhost:6379/0
 ```
 
-`SECRET_KEY` 생성:
+### 4. DB / Redis 준비
 
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-#### D) PostgreSQL DB 생성
-
-Homebrew 기본 설정에서는 현재 macOS 사용자로 바로 접속되는 경우가 많습니다.
-
-```bash
-psql postgres
-```
-
-```sql
-CREATE DATABASE vote_db;
-\c vote_db
-```
-
-만약 `postgres` 계정으로 접속해야 하는 환경이면 아래처럼 시도:
-
-```bash
-psql -U ggwp -d postgres
-```
-
-#### E) 마이그레이션 + PYTHONPATH + 실행
-
-이 코드베이스는 import 경로 특성상 `PYTHONPATH`에 `src`를 추가해야 안정적으로 동작합니다.
-
-현재 터미널 세션:
-
-```bash
-export PYTHONPATH="$(pwd)/src"
-```
-
-실행/테스트:
-
-```bash
-alembic upgrade head
-python -m pytest -q
-uvicorn src.main:app --reload
-```
-
-영구 설정(`~/.zshrc`):
-
-```bash
-echo 'export PYTHONPATH="$HOME/SecretVote/backend/src"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-확인:
-
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
-
----
-
-## 3) 트러블슈팅 체크리스트
-
-- `ModuleNotFoundError: No module named 'core'` 또는 `'models'`
-  - 원인: `PYTHONPATH` 미설정
-  - 해결: `$env:PYTHONPATH="E:\SecretVote\backend\src"`
-
-- `401 invalid token`
-  - 원인: `SECRET_KEY` 불일치/누락, 토큰 만료
-  - 해결: `.env`의 `SECRET_KEY` 확인 후 서버 재시작
-
-- DB 접속 실패
-  - 원인: PostgreSQL 서비스 중지, 비밀번호/포트 불일치
-  - 해결: 서비스 상태 확인, `.env`의 `DATABASE_URL` 점검
-
-- 마이그레이션 실패
-  - 원인: DB 미생성 또는 URL 오타
-  - 해결: DB 생성 후 `alembic upgrade head` 재실행
-
----
-
-## 4) 빠른 재구축 요약
-
-```powershell
-Set-Location E:\SecretVote\backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r req.txt
-$env:PYTHONPATH="E:\SecretVote\backend\src"
-alembic upgrade head
-python -m pytest -q
-uvicorn src.main:app --reload
-```
-
-### macOS 빠른 재구축
-
-```bash
-cd ~/SecretVote/backend
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r req.txt
-export PYTHONPATH="$(pwd)/src"
-alembic upgrade head
-python -m pytest -q
-uvicorn src.main:app --reload
-```
-
-## 5) Cloud SQL (GCP) 연결 가이드
-
-Cloud SQL 인스턴스를 **비공개 IP**로 만든 경우, 로컬에서 직접 접속이 불가합니다.
-Cloud SQL Auth Proxy를 통해 로컬 ↔ Cloud SQL 터널을 열어야 합니다.
-
-### 5-1. Cloud SQL Auth Proxy 설치 (Windows)
-
-[공식 다운로드 페이지](https://cloud.google.com/sql/docs/postgres/sql-proxy#install)에서 Windows용 `.exe` 다운로드 후 적당한 위치에 저장합니다.
-
-또는 gcloud 로그인 후 아래 명령어로 다운로드:
-
-```powershell
-# gcloud 로그인 (처음 한 번)
-gcloud auth login
-gcloud auth application-default login
-```
-
-### 5-2. 프록시 실행
-
-```powershell
-./cloud-sql-proxy --port=5433 <PROJECT_ID>:<REGION>:<INSTANCE_ID>
-```
-
-예시:
-```powershell
-./cloud-sql-proxy --port=5433 secret-vote-back:us-central1:secretvote-db
-```
-
-프록시가 실행되면 `localhost:5433`으로 Cloud SQL에 접속 가능해집니다.
 docker run -d --name redis-local -p 6379:6379 redis:7-alpine
-
-로컬로 db 세팅할때 레디스 켜야함 이 명령어를 써라
-docker run -d --name redis-local -p 6379:6379 redis:7-alpine
-
-### 5-3. .env 설정 (Cloud SQL 연결용)
-
-```dotenv
-DATABASE_URL=postgresql+psycopg://ggwp:!Qogusdn90@127.0.0.1:5433/vote_db
-SECRET_KEY=<YOUR_SECRET_KEY>
-REDIS_URL=redis://<REDIS_HOST>:6379/0
 ```
 
-### 5-4. DB/유저 생성 (최초 1회)
+PostgreSQL은 로컬 설치 또는 Docker Compose를 사용하면 됩니다.
 
-프록시 켜놓은 상태에서 `psql`로 접속:
+### 5. 마이그레이션 적용
 
-```powershell
-psql -h 127.0.0.1 -p 5433 -U postgres -d postgres
-psql -h 127.0.0.1 -p 5433 -U ggwp -d vote_db
-```
-
-```sql
-CREATE DATABASE vote_db;
-CREATE USER ggwp WITH PASSWORD '강한비밀번호';
-GRANT ALL PRIVILEGES ON DATABASE vote_db TO ggwp;
-\q
-```
-
-### 5-4-1. 마이그레이션 권한 설정 (중요)
-
-Alembic 마이그레이션 실행 전에 `ggwp` 사용자에게 스키마 권한을 미리 설정해야 합니다.
-(`permission denied for schema public` 에러 방지용)
-
-프록시 켜놓은 상태에서 `psql`로 다시 접속:
-
-```powershell
-psql -h 127.0.0.1 -p 5433 -U postgres -d vote_db
-```
-
-**아래 명령어들을 차례대로 실행:**
-
-```sql
--- 1. 스키마에 대한 기본 권한 부여
-GRANT USAGE ON SCHEMA public TO ggwp;
-GRANT CREATE ON SCHEMA public TO ggwp;
-
--- 2. 기존 테이블/시퀀스에 권한 부여 (나중에 만들어질 테이블도 포함)
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ggwp;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ggwp;
-
--- 3. 미래에 생성될 테이블/시퀀스도 자동으로 권한 부여 (default privileges)
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ggwp;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ggwp;
-
--- 4. 데이터베이스 자체 권한도 명시적으로 부여
-GRANT CONNECT ON DATABASE vote_db TO ggwp;
-GRANT TEMP ON DATABASE vote_db TO ggwp;
-
-\q
-```
-
-**참고:**
-- `GRANT USAGE ON SCHEMA public`: 스키마 접근 권한
-- `GRANT CREATE ON SCHEMA public`: 스키마 내에서 테이블 생성 권한
-- `ALTER DEFAULT PRIVILEGES`: 앞으로 생성될 네 객체에 대한 자동 권한 부여
-
-이 설정 후에는 Alembic 마이  레이션이 정상 작동합니다.
-
-### 5-5. Alembic 마이그레이션 적용
-
-테이블을 수동으로 만들 필요 없이, Alembic이 모델 기준으로 자동 생성합니다.
-
-**로컬 PowerShell에서:**
-
-```powershell
-Set-Location E:\SecretVote\backend
-.\.venv\Scripts\Activate.ps1
-$env:PYTHONPATH="E:\SecretVote\backend\src"
+```bash
 alembic upgrade head
 ```
 
-예상 출력:
-```
-INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade  -> b6562685d049, init
-INFO  [alembic.runtime.migration] Running upgrade b6562685d049 -> 051b595f8b2c, add default uuid for qr_tokens id
-INFO  [alembic.runtime.migration] Running upgrade 051b595f8b2c -> aff56d16c962, vote table change
-INFO  [alembic.runtime.migration] Running upgrade aff56d16c962 -> b593a6a9b9ac, user table's id auto increase
+### 6. 테스트 실행
+
+```bash
+python -m pytest -q
 ```
 
-**완료 후 테이블 확인:**
+### 7. 서버 실행
 
-```powershell
-psql -h 127.0.0.1 -p 5433 -U ggwp -d vote_db
-```
-
-```sql
-\dt
-```
-
-`users`, `polls`, `poll_options`, `votes`, `qr_tokens`, `alembic_version` 6개 테이블이 나오면 완료.
-
-### 5-5-1. 로컬 백엔드 시작 및 테스트
-
-프록시는 계속 켜놓은 상태에서 **새 PowerShell 터미널**을 열어 서버를 실행합니다:
-
-```powershell
-Set-Location E:\SecretVote\backend
-.\.venv\Scripts\Activate.ps1
-$env:PYTHONPATH="E:\SecretVote\backend\src"
+```bash
 uvicorn src.main:app --reload
 ```
 
-예상 출력:
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-```
+Swagger UI:
 
-**기본 스모크 테스트 (Swagger UI 또는 curl/Postman):**
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/redoc`
 
-1. **회원가입**
-   - `POST /api/v1/auth/register`
-   - Body: `{"login_id": "testuser", "password": "testpass123"}`
-   - 응   : 사용자 생성 성공
+## Docker 실행
 
-2. **로그인**
-   - `POST /api/v1/auth/login`
-   - Body: `{"login_id": "testuser", "password": "testpass123"}`
-   - 응답: `{"access_token": "..."}`
+### Docker Compose
 
-3. **API 문서 확인**
-   - Swagger UI: `http://127.0.0.1:8000/docs`
-   - ReDoc: `http://127.0.0.1:8000/redoc`
+가장 재현성 높은 실행 방법입니다.
 
-모두 정상이면 로컬 앱 + Cloud DB 연결 완료.
-
----
-
-## 6) Docker 실행
-
-`Dockerfile`은 FastAPI 앱(`src.main:app`)을 PostgreSQL 연결 전제로 실행합니다.
-
-### 6-1. 이미지 빌드
-
-```powershell
-docker build -t secretvote-backend:latest .
-```
-
-### 6-2. 컨테이너 실행
-
-로컬 PostgreSQL을 사용할 때는 `host.docker.internal`를 사용하면 됩니다.
-
-```powershell
-docker run --rm -p 8000:8000 `
-  -e DATABASE_URL="postgresql+psycopg://ggwp:<DB_PASSWORD>@host.docker.internal:5432/vote_db" `
-  -e SECRET_KEY="<YOUR_SECRET_KEY>" `
-  secretvote-backend:latest
-```
-
-확인:
-
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
-
-### 6-3. Docker Compose로 한 번에 실행
-
-`docker compose up` 한 번으로 `app + postgres`를 같이 올릴 수 있습니다.
-
-처음 한 번(선택):
-
-```powershell
-Copy-Item .env.compose.example .env.compose
-```
-
-실행:
-
-```powershell
-docker compose --env-file .env.compose up --build
+```bash
+docker compose up --build
 ```
 
 백그라운드 실행:
 
-```powershell
-docker compose --env-file .env.compose up -d --build
+```bash
+docker compose up -d --build
 ```
 
-중지/정리:
+중지:
 
-```powershell
+```bash
 docker compose down
-docker compose down -v
 ```
+
+### Dockerfile 기반 단독 실행
+
+```bash
+docker build -t secretvote-backend:latest .
+docker run --rm -p 8080:8080 \
+  -e DATABASE_URL="postgresql+psycopg://USER:PASSWORD@host.docker.internal:5432/vote_db" \
+  -e SECRET_KEY="replace-this" \
+  -e REDIS_URL="redis://host.docker.internal:6379/0" \
+  secretvote-backend:latest
+```
+
+## 테스트 전략
+
+이 프로젝트는 기능만 만들고 끝내지 않고, 실패하기 쉬운 지점을 테스트로 고정하고 있습니다.
+
+### 검증하는 내용
+
+- bcrypt 허용 길이 초과 시 요청 차단
+- 로그인/회원가입 request schema alias 처리
+- 모델 테이블과 unique constraint 등록 여부
+- 다중 선택 투표 저장
+- 동일 옵션 중복 투표 거부
+- 잘못된 anonymous cookie 자동 복구
+
+### 테스트 방식
+
+- FastAPI TestClient로 HTTP 레벨 검증
+- SQLite fixture로 빠른 DB 테스트
+- Fake Redis 객체 주입으로 외부 의존성 없이 Redis 동작 모사
+
+이 접근은 테스트 속도를 확보하면서도 실제 엔드포인트 동작에 가까운 회귀 검증을 가능하게 합니다.
+
+## 이 프로젝트에서 보여주고 싶은 백엔드 역량
+
+이 저장소는 단순한 "FastAPI 써봤다" 수준의 결과물이 아닙니다. 아래 역량을 한 프로젝트 안에 묶어 보여주기 위해 설계했습니다.
+
+- 인증과 익명 참여를 동시에 만족하는 권한 모델 설계
+- DB 무결성과 애플리케이션 로직을 함께 사용하는 데이터 보호 전략
+- 캐시, 토큰 블랙리스트, 요청 제한 같은 운영형 방어 장치 구현
+- 스키마 버전 관리와 컨테이너 기반 실행 환경 구성
+- 테스트 가능한 구조로 서비스/저장소/라우터 분리
+- GitHub 이벤트 기반 자동 빌드와 Cloud Run 배포 파이프라인 구성
+- Pub/Sub, Cloud Function, GCS를 연결한 비동기 QR 생성 이벤트 아키텍처 구현
+- Cloud SQL, Cloud Run, Pub/Sub, GCS를 묶은 GCP 중심 운영 구조 설계
+
+## 개선 예정 항목
+
+현재 구조만으로도 포트폴리오 제출에는 충분히 강하지만, 실제 서비스 수준으로 더 끌어올릴 수 있는 다음 단계도 분명합니다.
+
+- GitHub Actions 또는 Cloud Build 기반 CI/CD 워크플로 추가
+- 인증/권한 관련 통합 테스트 확대
+- observability를 위한 structured logging 및 metrics 추가
+- `/migration/internal/migrate` 같은 내부 엔드포인트 보호 강화
+- 캐시 무효화 전략 정교화
+- poll_group 관련 예외 처리 정리 및 응답 일관성 강화
+
+## 한 줄 정리
+
+SecretVote Backend는 익명 투표라는 도메인을 FastAPI, PostgreSQL, Redis, Alembic, Docker, 테스트 전략 위에 실전형으로 풀어낸 백엔드 프로젝트입니다. 기능 구현, 데이터 무결성, 인증 보안, 운영 재현성, 클라우드 확장성을 한 저장소 안에서 함께 보여주는 것이 이 프로젝트의 핵심 가치입니다.
